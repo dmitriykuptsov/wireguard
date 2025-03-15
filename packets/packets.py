@@ -44,6 +44,42 @@ class WireGuardInitiatorPacket(WireGuardPacket):
                                                         MAC1_LENGTH + \
                                                             MAC2_LENGTH)
 
+    def sender(self, s):
+        if s:
+            self.buffer[SENDER_OFFSET:SENDER_OFFSET+SENDER_LENGTH] = s
+        else:
+            return self.buffer[SENDER_OFFSET:SENDER_OFFSET+SENDER_LENGTH]
+
+    def ephimeral(self, e):
+        if e:
+            self.buffer[EPHIMERAL_OFFSET:EPHIMERAL_LENGTH+EPHIMERAL_OFFSET] = e
+        else:
+            return self.buffer[EPHIMERAL_OFFSET:EPHIMERAL_LENGTH+EPHIMERAL_OFFSET]
+        
+    def static(self, s):
+        if s:
+            self.buffer[STATIC_OFFSET:STATIC_LENGTH+STATIC_OFFSET] = s
+        else:
+            return self.buffer[STATIC_OFFSET:STATIC_LENGTH+STATIC_OFFSET]
+
+    def timestamp(self, t):
+        if t:
+            self.buffer[TIMESTAMP_OFFSET:TIMESTAMP_LENGTH+TIMESTAMP_OFFSET] = t
+        else:
+            return self.buffer[TIMESTAMP_OFFSET:TIMESTAMP_LENGTH+TIMESTAMP_OFFSET]
+        
+    def mac1(self, m):
+        if m:
+            self.buffer[MAC1_OFFSET:MAC1_LENGTH+MAC1_OFFSET] = m
+        else:
+            return self.buffer[MAC1_OFFSET:MAC1_LENGTH+MAC1_OFFSET]
+        
+    def mac2(self, m):
+        if m:
+            self.buffer[MAC2_OFFSET:MAC2_LENGTH+MAC2_OFFSET] = m
+        else:
+            return self.buffer[MAC2_OFFSET:MAC2_LENGTH+MAC2_OFFSET]
+
 SENDER_LENGTH = 4
 SENDER_OFFSET = 4
 RECEIVER_LENGTH = 4
@@ -62,7 +98,36 @@ class WireGuardResponderPacket(WireGuardPacket):
         else:
             self.buffer = (bytearray) [0] * (TYPE_LEGNTH + RESERVED_LENGTH + SENDER_LENGTH + \
                                              EPHIMERAL_LENGTH + MAC1_LENGTH + MAC2_LENGTH)
+    def sender(self, s):
+        if s:
+            self.buffer[SENDER_OFFSET:SENDER_OFFSET+SENDER_LENGTH] = s
+        else:
+            return self.buffer[SENDER_OFFSET:SENDER_OFFSET+SENDER_LENGTH]
+    
+    def receiver(self, r):
+        if r:
+            self.buffer[RECEIVER_OFFSET:RECEIVER_OFFSET+RECEIVER_LENGTH] = r
+        else:
+            return self.buffer[RECEIVER_OFFSET:RECEIVER_OFFSET+RECEIVER_LENGTH]
 
+    def ephimeral(self, e):
+        if e:
+            self.buffer[EPHIMERAL_OFFSET:EPHIMERAL_LENGTH+EPHIMERAL_OFFSET] = e
+        else:
+            return self.buffer[EPHIMERAL_OFFSET:EPHIMERAL_LENGTH+EPHIMERAL_OFFSET]
+    
+    def mac1(self, m):
+        if m:
+            self.buffer[MAC1_OFFSET:MAC1_LENGTH+MAC1_OFFSET] = m
+        else:
+            return self.buffer[MAC1_OFFSET:MAC1_LENGTH+MAC1_OFFSET]
+        
+    def mac2(self, m):
+        if m:
+            self.buffer[MAC2_OFFSET:MAC2_LENGTH+MAC2_OFFSET] = m
+        else:
+            return self.buffer[MAC2_OFFSET:MAC2_LENGTH+MAC2_OFFSET]
+        
 RECEIVER_LENGTH = 4
 RECEIVER_OFFSET = 4
 COUNTER_LENGTH = 8
@@ -75,3 +140,20 @@ class WireGuardDataPacket(WireGuardPacket):
         else:
             self.buffer = (bytearray) [0] * (TYPE_LEGNTH + RESERVED_LENGTH + SENDER_LENGTH + \
                                              RECEIVER_LENGTH + COUNTER_LENGTH)
+    def receiver(self, r):
+        if r:
+            self.buffer[RECEIVER_OFFSET:RECEIVER_OFFSET+RECEIVER_LENGTH] = r
+        else:
+            return self.buffer[RECEIVER_OFFSET:RECEIVER_OFFSET+RECEIVER_LENGTH]
+    
+    def counter(self, c):
+        if c:
+            self.buffer[COUNTER_OFFSET:COUNTER_OFFSET+COUNTER_LENGTH] = c
+        else:
+            return self.buffer[COUNTER_OFFSET:COUNTER_OFFSET+COUNTER_LENGTH]
+    
+    def data(self, d):
+        if d:
+            self.buffer[DATA_OFFSET:DATA_OFFSET+len(d)] = d
+        else:
+            return self.buffer[DATA_OFFSET:]
