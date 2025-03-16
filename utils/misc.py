@@ -148,7 +148,17 @@ class Math():
 
 	@staticmethod
 	def compress_point(G):
-		return (G.get_x() << 8) | ((G.get_y() % 0x2) & 0xFF)
+		return (G.get_x() | (1 << 255) if G.get_y() % 0x2 else G.get_x())
+	
+	@staticmethod
+	def decompress_point(x, a, b, p):
+		is_odd = (x >> 255) & 1
+		x = x & ((1 << 255) - 1)
+		rhs = (x**3 + a*x + b) % p
+		y = pow(rhs, (p+1)//4, p)
+		if (y % 2) != is_odd:
+			y = p - y
+		return ECPoint(x, y)
 
 	@staticmethod
 	def mul_inverse(n, modulus):
