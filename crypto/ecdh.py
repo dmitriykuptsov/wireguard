@@ -27,29 +27,8 @@ from utils import misc
 from binascii import unhexlify
 from os import urandom
 import crypto
-from crypto.dh import DH
-
-#https://tools.ietf.org/html/rfc4753#section-3.1
-
-SUPPORTED_ECDH_GROUPS = [0xa];
-
-class ECDHFactory():
-	@staticmethod
-	def get_ecdh(group):
-		if group == 0x7:
-			return ECDHNIST256();
-		elif group == 0x8:
-			return ECDHNIST384();
-		elif group == 0x9:
-			return ECDHNIST521();
-		elif group == 0xa:
-			return ECDHSECP160R1();
-		else:
-			raise Exception("Not implemented");
 
 class ECDH(DH):
-	ALG_ID = 0x0;
-	
 	def __init__(self):
 		pass
 	
@@ -72,36 +51,7 @@ class ECDH(DH):
 	def decode_public_key(buffer):
 		pass
 
-
-"""
-   https://tools.ietf.org/html/rfc5903#section-7
-   In an ECP key exchange, the Diffie-Hellman public value passed in a
-   KE payload consists of two components, x and y, corresponding to the
-   coordinates of an elliptic curve point.  Each component MUST have bit
-   length as given in the following table.
-
-      Diffie-Hellman group                component bit length
-      ------------------------            --------------------
-
-      256-bit Random ECP Group                   256
-      384-bit Random ECP Group                   384
-      521-bit Random ECP Group                   528
-
-   This length is enforced, if necessary, by prepending the value with
-   zeros.
-
-   The Diffie-Hellman public value is obtained by concatenating the x
-   and y values.
-
-   The Diffie-Hellman shared secret value consists of the x value of the
-   Diffie-Hellman common value.
-
-   These formats should be regarded as specific to ECP curves and may
-   not be applicable to EC2N (elliptic curve group over GF[2^N]) curves.
-
-"""
 class ECDHSECP160R1(ECDH):
-	ALG_ID = 0xa;
 	def __init__(self):
 		self.private_key_size = int(160/8);
 		self.modulus = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF7FFFFFFF;
@@ -148,7 +98,6 @@ class ECDHSECP160R1(ECDH):
 # https://tools.ietf.org/html/rfc5903#section-3
 
 class ECDHNIST256(ECDH):
-	ALG_ID = 0x7;
 	def __init__(self):
 		self.private_key_size = int(256/8);
 		self.modulus = 0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff;
@@ -194,7 +143,6 @@ class ECDHNIST256(ECDH):
 		return misc.ECPoint(x, y);
 
 class ECDHNIST384(ECDH):
-	ALG_ID = 0x8;
 	def __init__(self):
 		self.private_key_size = int(384/8);
 		self.modulus = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000ffffffff;
@@ -240,7 +188,6 @@ class ECDHNIST384(ECDH):
 		return misc.ECPoint(x, y);
 
 class ECDHNIST521(ECDH):
-	ALG_ID = 0x9;
 	def __init__(self):
 		self.private_key_size = int(528/8);
 		self.modulus = 0x000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
@@ -285,8 +232,48 @@ class ECDHNIST521(ECDH):
 		y = misc.Math.bytes_to_int(buffer[int(len(buffer)/2):])
 		return misc.ECPoint(x, y);
 
+class ECDHCurve25519(ECDH):
+	def __init__(self):
+		self.private_key_size = 32;
+		self.modulus = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed;
+		self.group_order = 2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed;
+		self.b = 0x01;
+		self.gx = 0x9;
+		self.gy = 0x20ae19a1b8a086b4e01edd2c7748d14c923d4d7e6d7c61b229e9c5a27eced3d9;
+		self.a = 0x76d06;
+		self.h = 0x08;
+		self.G = misc.ECPoint(self.gx, self.gy);
+		self.component_bit_length = 32;
+
+	def get_component_length(self):
+		return self.component_bit_length;
+
+	def set_private_key(self, key):
+		self.private_key = key;
+
+	def generate_private_key(self):
+		self.private_key = misc.Math.bytes_to_int(bytearray(urandom(self.private_key_size)));
+
+	def generate_public_key(self):
+		self.public_key = misc.Math.double_and_add(self.G, self.private_key, self.a, self.b, self.modulus);
+		return self.public_key;
+
+	# The Diffie-Hellman shared secret value consists of the x value of the
+	# Diffie-Hellman common value.
+	# https://tools.ietf.org/html/rfc5903
+	def compute_shared_secret(self, public_key):
+		return misc.Math.double_and_add(public_key, self.private_key, self.a, self.b, self.modulus).x;
+
+	def encode_public_key(self):
+		x = misc.Math.int_to_bytes(self.public_key.get_x());
+		if len(x) != self.component_bit_length:
+			x = bytearray([0] * (self.component_bit_length - len(x))) + x;
+		y = misc.Math.int_to_bytes(self.public_key.get_y());
+		if len(y) != self.component_bit_length:
+			y = bytearray([0] * (self.component_bit_length - len(y))) + y;
+		return x + y;
+
 class ECDHBrainpool256(ECDH):
-	ALG_ID = 0x0;
 	def __init__(self):
 		self.private_key_size = int(256/8);
 		self.modulus = 0xA9FB57DBA1EEA9BC3E660A909D838D726E3BF623D52620282013481D1F6E5377;
