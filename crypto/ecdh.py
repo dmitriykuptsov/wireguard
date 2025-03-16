@@ -28,7 +28,7 @@ from binascii import unhexlify
 from os import urandom
 import crypto
 
-class ECDH(DH):
+class ECDH():
 	def __init__(self):
 		pass
 	
@@ -95,7 +95,6 @@ class ECDHSECP160R1(ECDH):
 		y = misc.Math.bytes_to_int(buffer[int(len(buffer)/2):])
 		return misc.ECPoint(x, y);
 
-# https://tools.ietf.org/html/rfc5903#section-3
 
 class ECDHNIST256(ECDH):
 	def __init__(self):
@@ -258,9 +257,6 @@ class ECDHCurve25519(ECDH):
 		self.public_key = misc.Math.double_and_add(self.G, self.private_key, self.a, self.b, self.modulus);
 		return self.public_key;
 
-	# The Diffie-Hellman shared secret value consists of the x value of the
-	# Diffie-Hellman common value.
-	# https://tools.ietf.org/html/rfc5903
 	def compute_shared_secret(self, public_key):
 		return misc.Math.double_and_add(public_key, self.private_key, self.a, self.b, self.modulus).x;
 
@@ -299,9 +295,6 @@ class ECDHBrainpool256(ECDH):
 		self.public_key = misc.Math.double_and_add(self.G, self.private_key, self.a, self.b, self.modulus);
 		return self.public_key;
 
-	# The Diffie-Hellman shared secret value consists of the x value of the
-	# Diffie-Hellman common value.
-	# https://tools.ietf.org/html/rfc5903
 	def compute_shared_secret(self, public_key):
 		return misc.Math.double_and_add(public_key, self.private_key, self.a, self.b, self.modulus).x;
 
