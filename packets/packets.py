@@ -43,6 +43,7 @@ class WireGuardInitiatorPacket(WireGuardPacket):
                                                     TIMESTAMP_LENGTH + \
                                                         MAC1_LENGTH + \
                                                             MAC2_LENGTH)
+            self.buffer[TYPE_OFFSET] = WIREGUARD_INITIATOR_TYPE
 
     def sender(self, s):
         if s:
@@ -98,6 +99,7 @@ class WireGuardResponderPacket(WireGuardPacket):
         else:
             self.buffer = (bytearray) [0] * (TYPE_LEGNTH + RESERVED_LENGTH + SENDER_LENGTH + \
                                              EPHIMERAL_LENGTH + MAC1_LENGTH + MAC2_LENGTH)
+            self.buffer[TYPE_OFFSET] = WIREGUARD_RESPONDER_TYPE
     def sender(self, s):
         if s:
             self.buffer[SENDER_OFFSET:SENDER_OFFSET+SENDER_LENGTH] = s
@@ -140,6 +142,7 @@ class WireGuardDataPacket(WireGuardPacket):
         else:
             self.buffer = (bytearray) [0] * (TYPE_LEGNTH + RESERVED_LENGTH + SENDER_LENGTH + \
                                              RECEIVER_LENGTH + COUNTER_LENGTH)
+            self.buffer[TYPE_OFFSET] = WIREGUARD_TRANSPORT_DATA_TYPE
     def receiver(self, r):
         if r:
             self.buffer[RECEIVER_OFFSET:RECEIVER_OFFSET+RECEIVER_LENGTH] = r
@@ -157,3 +160,36 @@ class WireGuardDataPacket(WireGuardPacket):
             self.buffer[DATA_OFFSET:DATA_OFFSET+len(d)] = d
         else:
             return self.buffer[DATA_OFFSET:]
+        
+RECEIVER_LENGTH = 4
+RECEIVER_OFFSET = 4
+NONCE_LENGTH = 24
+NONCE_OFFSET = 8
+COOKIE_LENGTH = 16
+COOKIE_OFFSET = 34
+
+class WireGuardCookiePacket(WireGuardPacket):
+    def __init__(self, buffer):
+        if buffer:
+            self.buffer = buffer
+        else:
+            self.buffer = (bytearray) [0] * (TYPE_LEGNTH + RESERVED_LENGTH + RECEIVER_LENGTH + \
+                                             NONCE_LENGTH + COOKIE_LENGTH)
+            self.buffer[TYPE_OFFSET] = WIREGUARD_COOKIE_REPLY_TYPE
+    def receiver(self, r):
+        if r:
+            self.buffer[RECEIVER_OFFSET:RECEIVER_OFFSET+RECEIVER_LENGTH] = r
+        else:
+            return self.buffer[RECEIVER_OFFSET:RECEIVER_OFFSET+RECEIVER_LENGTH]
+    
+    def nonce(self, c):
+        if c:
+            self.buffer[NONCE_OFFSET:NONCE_OFFSET+NONCE_LENGTH] = c
+        else:
+            return self.buffer[NONCE_OFFSET:NONCE_OFFSET+NONCE_LENGTH]
+    
+    def cookie(self, d):
+        if d:
+            self.buffer[COOKIE_OFFSET:DATA_OFFSET+COOKIE_LENGTH] = d
+        else:
+            return self.buffer[COOKIE_OFFSET:DATA_OFFSET+COOKIE_LENGTH]
