@@ -66,12 +66,12 @@ class ECDHCurve25519():
 			y = bytearray([0] * (self.component_bit_length - len(y))) + y;
 		return x + y;
 
-	def compress_point(self):
-		return (self.public_key.get_x() | (1 << 255) if G.get_y() % 0x2 else self.public_key.get_x())
+	def compress_point(self, Q):
+		return (Q.get_x() | (1 << 255) if Q.get_y() % 0x2 else Q.get_x())
 	
-	def decompress_point(self):
-		is_odd = (self.public_key.get_x() >> 255) & 1
-		x = self.public_key.get_x() & ((1 << 255) - 1)
+	def decompress_point(self, Q):
+		is_odd = (Q.get_x() >> 255) & 1
+		x = Q.get_x() & ((1 << 255) - 1)
 		rhs = (x**3 + self.a*x + self.b) % self.p
 		y = pow(rhs, (self.p+1)//4, self.p)
 		if (y % 2) != is_odd:
