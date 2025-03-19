@@ -44,9 +44,9 @@ class HMACDigest():
 		h.update(p1 + p2)
 		return h.digest()
 
-from binascii import hexlify
-h = HMACDigest(b'testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest')
-print(hexlify(h.digest(b'testtesttesttesttesttesttesttest')));
+#from binascii import hexlify
+#h = HMACDigest(b'testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest')
+#print(hexlify(h.digest(b'testtesttesttesttesttesttesttest')));
 
 #hmac = HMAC.new(b'testtesttesttesttesttesttesttest', digestmod=SHA256);
 #hmac.update(b'testtesttesttesttesttesttesttest');
