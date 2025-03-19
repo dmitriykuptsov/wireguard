@@ -47,6 +47,22 @@ class HMACDigest():
 		h.update(p1 + p2)
 		return h.digest()
 	
+class MACDigest():
+	"""
+	BLAKE2s based MAC
+	"""
+	def __init__(self, key = None):
+		self.key = key;
+	
+	def digest(self, data):
+		h = BLAKE2s.new(digest_bytes=16, key=self.key)
+		h.update(data)
+		return h.digest()
+
+#from binascii import hexlify, unhexlify
+#mac = MACDigest(b'test')
+#print(hexlify(mac.digest(b'test')))
+
 class KDF():
 	"""
 	Key derivation function
