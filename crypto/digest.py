@@ -18,6 +18,9 @@
 from Crypto.Hash import HMAC, BLAKE2s
 
 class HMACDigest():
+	"""
+	BLAKE2s based HMAC
+	"""
 	B_LENGTH = 64;
 	def __init__(self, key = None):
 		self.key = key;
@@ -43,10 +46,35 @@ class HMACDigest():
 		h = BLAKE2s.new(digest_bits=256)
 		h.update(p1 + p2)
 		return h.digest()
+	
+class KDF():
+	"""
+	Key derivation function
+	"""
+	@staticmethod
+	def kdf1(key, input):
+		hmac = HMACDigest(key)
+		tau0 = hmac.digest(input)
+		hmac = HMACDigest(tau0)
+		tau1 = hmac.digest(bytes([0x1]))
+		return tau1
+	@staticmethod
+	def kdf2(key, input):
+		hmac = HMACDigest(key)
+		tau0 = hmac.digest(input)
+		hmac = HMACDigest(tau0)
+		tau1 = hmac.digest(bytes([0x1]))
+		hmac = HMACDigest(tau0)
+		tau2 = hmac.digest(tau1 + bytes([0x2]))
+		return (tau1, tau2)
 
 #from binascii import hexlify
 #h = HMACDigest(b'testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest')
 #print(hexlify(h.digest(b'testtesttesttesttesttesttesttest')));
+
+#from binascii import hexlify, unhexlify
+#h = HMACDigest(b'test')
+#print(hexlify(h.digest(b'test')))
 
 #hmac = HMAC.new(b'testtesttesttesttesttesttesttest', digestmod=SHA256);
 #hmac.update(b'testtesttesttesttesttesttesttest');
