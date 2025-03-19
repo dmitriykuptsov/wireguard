@@ -18,7 +18,7 @@
 from Crypto.Hash import HMAC, BLAKE2s
 
 class HMACDigest():
-	LENGTH = 64;
+	B_LENGTH = 64;
 	def __init__(self, key = None):
 		self.key = key;
 	
@@ -27,16 +27,15 @@ class HMACDigest():
 		return bytes(a ^ b for (a, b) in zip(one, two))
 
 	def digest(self, data):
-		if len(self.key) > self.LENGTH:
+		if len(self.key) > self.B_LENGTH:
 			h = BLAKE2s.new(digest_bits=256)
 			h.update(self.key)
 			self.key = h.digest()
-			self.key = self.key + bytes([0] * (self.LENGTH - len(self.key)))
-		elif len(self.key) < self.LENGTH:
-			self.key = self.key + bytes([0] * (self.LENGTH - len(self.key)))
-		opad = bytes([0x5c] * self.LENGTH)
-		ipad = bytes([0x36] * self.LENGTH)
-
+			self.key = self.key + bytes([0] * (self.B_LENGTH - len(self.key)))
+		elif len(self.key) < self.B_LENGTH:
+			self.key = self.key + bytes([0] * (self.B_LENGTH - len(self.key)))
+		opad = bytes([0x5c] * self.B_LENGTH)
+		ipad = bytes([0x36] * self.B_LENGTH)
 		p1 = HMACDigest.xor(self.key, opad)
 		h = BLAKE2s.new(digest_bits=256)
 		h.update(HMACDigest.xor(self.key, ipad) + data)
@@ -45,22 +44,19 @@ class HMACDigest():
 		h.update(p1 + p2)
 		return h.digest()
 
-#from binascii import hexlify
-#h = HMACDigest(b'testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest')
-#print(hexlify(h.digest(b'testtesttesttesttesttesttesttest')));
+from binascii import hexlify
+h = HMACDigest(b'testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest')
+print(hexlify(h.digest(b'testtesttesttesttesttesttesttest')));
 
 #hmac = HMAC.new(b'testtesttesttesttesttesttesttest', digestmod=SHA256);
 #hmac.update(b'testtesttesttesttesttesttesttest');
 #print(hexlify(hmac.digest()));
 
 class Digest():
-	LENGTH = 32;
 	def __init__(self):
 		pass
 	def digest(self, data):
 		h = BLAKE2s.new(digest_bits=256)
 		h.update(data)
 		return h.digest()
-	def get_length(self):
-		return self.LENGTH
 
