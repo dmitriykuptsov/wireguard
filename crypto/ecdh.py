@@ -28,16 +28,16 @@ from binascii import unhexlify
 from os import urandom
 import crypto
 
-class ECDHCurve25519():
+class ECDHNIST256():
 	def __init__(self):
 		self.private_key_size = 32;
-		self.modulus = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed;
-		self.group_order = 2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed;
-		self.b = 0x01;
-		self.gx = 0x9;
-		self.gy = 0x20ae19a1b8a086b4e01edd2c7748d14c923d4d7e6d7c61b229e9c5a27eced3d9;
-		self.a = 0x76d06;
-		self.h = 0x08;
+		self.modulus = 0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff;
+		self.group_order = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
+		self.b = 0x5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b;
+		self.gx = 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296;
+		self.gy = 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5;
+		self.a = 0xffffffff00000001000000000000000000000000fffffffffffffffffffffffc;
+		self.h = 0x1;
 		self.G = misc.ECPoint(self.gx, self.gy);
 		self.component_bit_length = 32;
 
@@ -55,7 +55,7 @@ class ECDHCurve25519():
 		return self.public_key;
 
 	def compute_shared_secret(self, public_key):
-		return misc.Math.double_and_add(public_key, self.private_key, self.a, self.b, self.modulus).x;
+		return misc.Math.double_and_add(public_key, self.private_key, self.a, self.b, self.modulus);
 
 	def encode_public_key(self):
 		x = misc.Math.int_to_bytes(self.public_key.get_x());
@@ -69,11 +69,27 @@ class ECDHCurve25519():
 	def compress_point(self, Q):
 		return (Q.get_x() | (1 << 255) if Q.get_y() % 0x2 else Q.get_x())
 	
-	def decompress_point(self, Q):
-		is_odd = (Q.get_x() >> 255) & 1
-		x = Q.get_x() & ((1 << 255) - 1)
-		rhs = (x**3 + self.a*x + self.b) % self.p
-		y = pow(rhs, (self.p+1)//4, self.p)
-		if (y % 2) != is_odd:
-			y = self.p - y
-		return misc.ECPoint(x, y)
+	def decompress_point(self, x):
+		is_odd = (x >> 255) & 1
+		x = x & ((1 << 255) - 1)
+		rhs = (x**3 + self.a*x + self.b) % self.modulus
+		y = pow(rhs, (self.modulus + 1) // 4, self.modulus)
+		if bool(y & 0x1) != bool(is_odd):
+			return misc.ECPoint(x, y)
+		return misc.ECPoint(x, self.modulus - y)
+	
+ec = ECDHNIST256()
+ec.set_private_key(0xC88F01F510D9AC3F70A292DAA2316DE544E9AAB8AFE84049C62A9C57862D1433)
+print(ec.generate_public_key())
+ec2 = ECDHNIST256()
+ec2.set_private_key(0xC6EF9C5D78AE012A011164ACB397CE2088685D8F06BF9BE0B283AB46476BEE53)
+print(ec2.generate_public_key())
+print(ec.compute_shared_secret(ec2.generate_public_key()))
+#ec.generate_private_key()
+#public = ec.generate_public_key()
+#print(public)
+#print("public")
+Q = ec.generate_public_key()
+x = ec.compress_point(Q)
+dQ = ec.decompress_point(x)
+print(dQ)
