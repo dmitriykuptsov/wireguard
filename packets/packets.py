@@ -190,6 +190,6 @@ class WireGuardCookiePacket(WireGuardPacket):
     
     def cookie(self, d):
         if d:
-            self.buffer[COOKIE_OFFSET:DATA_OFFSET+COOKIE_LENGTH] = d
+            self.buffer[COOKIE_OFFSET:COOKIE_OFFSET+COOKIE_LENGTH] = d
         else:
-            return self.buffer[COOKIE_OFFSET:DATA_OFFSET+COOKIE_LENGTH]
+            return self.buffer[COOKIE_OFFSET:COOKIE_OFFSET+COOKIE_LENGTH]
