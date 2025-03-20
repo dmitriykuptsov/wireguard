@@ -112,9 +112,6 @@ tun = TunTunnel(pattern = "wg0");
 #tun.set_ipv4(address);
 tun.set_mtu(MTU);
 
-sa_storage = Statemachine.Storage()
-sm_storage = Statemachine.Storage()
-
 # Read this from file instead
 Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.random(32))
 Spub = Spriv.public_key()
@@ -164,9 +161,8 @@ def tun_loop():
 			if (len(counter) % 8) > 0:
 				counter = bytes([0x0] * (8 - len(counter) % 8)) + counter
 			packet.counter(counter)
-			packet.receiver(entry.R)
-			#crypto.aead.AEAD(entry.TSend, counter, data, )
-			packet.data()
+			packet.receiver(entry.R)			
+			packet.data(crypto.aead.AEAD(entry.TSend, counter, data, entry.Ci))
 
 def wg_loop():
 	while True:
