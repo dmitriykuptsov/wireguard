@@ -44,7 +44,8 @@ class WireGuardInitiatorPacket(WireGuardPacket):
                                                         MAC1_LENGTH + \
                                                             MAC2_LENGTH)
             self.buffer[TYPE_OFFSET] = WIREGUARD_INITIATOR_TYPE
-
+        self.type(WIREGUARD_INITIATOR_TYPE)
+        
     def sender(self, s):
         if s:
             self.buffer[SENDER_OFFSET:SENDER_OFFSET+SENDER_LENGTH] = s
@@ -100,6 +101,7 @@ class WireGuardResponderPacket(WireGuardPacket):
             self.buffer = (bytearray) [0] * (TYPE_LEGNTH + RESERVED_LENGTH + SENDER_LENGTH + \
                                              EPHIMERAL_LENGTH + MAC1_LENGTH + MAC2_LENGTH)
             self.buffer[TYPE_OFFSET] = WIREGUARD_RESPONDER_TYPE
+        self.type(WIREGUARD_RESPONDER_TYPE)
     def sender(self, s):
         if s:
             self.buffer[SENDER_OFFSET:SENDER_OFFSET+SENDER_LENGTH] = s
@@ -143,6 +145,7 @@ class WireGuardDataPacket(WireGuardPacket):
             self.buffer = (bytearray) [0] * (TYPE_LEGNTH + RESERVED_LENGTH + SENDER_LENGTH + \
                                              RECEIVER_LENGTH + COUNTER_LENGTH)
             self.buffer[TYPE_OFFSET] = WIREGUARD_TRANSPORT_DATA_TYPE
+        self.type(WIREGUARD_TRANSPORT_DATA_TYPE)
     def receiver(self, r):
         if r:
             self.buffer[RECEIVER_OFFSET:RECEIVER_OFFSET+RECEIVER_LENGTH] = r
@@ -176,6 +179,7 @@ class WireGuardCookiePacket(WireGuardPacket):
             self.buffer = (bytearray) [0] * (TYPE_LEGNTH + RESERVED_LENGTH + RECEIVER_LENGTH + \
                                              NONCE_LENGTH + COOKIE_LENGTH)
             self.buffer[TYPE_OFFSET] = WIREGUARD_COOKIE_REPLY_TYPE
+        self.type(WIREGUARD_COOKIE_REPLY_TYPE)
     def receiver(self, r):
         if r:
             self.buffer[RECEIVER_OFFSET:RECEIVER_OFFSET+RECEIVER_LENGTH] = r
