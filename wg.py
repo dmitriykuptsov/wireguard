@@ -52,6 +52,7 @@ import packets.packets as p
 from packets.packets import WireGuardDataPacket, WireGuardResponderPacket, WireGuardInitiatorPacket, WireGuardPacket, WireGuardCookiePacket
 from packets.IPv4 import IPv4Packet
 # Statemachine classes
+import routing.cryptoroute
 from states import Statemachine
 # Cryptography
 import crypto
@@ -59,6 +60,10 @@ import crypto
 import os
 # Misc stuff
 import utils.misc
+# Cryptorouting table stuff
+import routing
+# Timing 
+from time import time
 
 # Configure logging to console and file
 logging.basicConfig(
@@ -69,6 +74,8 @@ logging.basicConfig(
 		logging.StreamHandler(sys.stdout)
 	]
 );
+
+table = routing.cryptoroute.RoutingTable()
 
 def config_loop():
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -82,6 +89,16 @@ def config_loop():
 			command=command.decode("ASCII").strip()
 			if command == "status":
 				conn.send("Status: \n".encode("ASCII"))
+			elif command == "add route":
+				command = command.removeprefix("add route")
+				(ip, prefix, key, port) = command.split(" ")
+				ip_bytes = bytes([int(x) for x in ip.split(".")])
+				prefix_bytes = bytes([int(x) for x in prefix.split(".")])
+				port = int(port)
+				entry = routing.cryptoroute.CryptoRoutingEntry(utils.misc.Math.bytes_to_int(ip), \
+												   utils.misc.Math.bytes_to_int(prefix), \
+													key, port)
+				table.add(entry)
 			elif command.strip() == "exit" or command.strip() == "":
 				conn.close();
 				reading = False;
@@ -105,13 +122,12 @@ Spub = Spriv.public_key()
 def tun_loop():
 	while True:
 		data = tun.recv();
-		ip = IPv4Packet(data)
-		dst = ip.get_destination_address()
-		# 1) Check the destination
-		# 2) If the association exists then send encrypted packet to the destination
-		# 3) If no destination exists, initiate the 
-		sa = sa_storage.get_record(hash(dst))
-		if not sa:
+		ip = IPv4Packet(data);
+		dst = utils.misc.Math.bytes_to_int(ip.get_destination_address());
+		entry = table.get(dst)
+		if not entry:
+			continue
+		if entry.state != Statemachine.States.ESTABLISHED and entry.rekey_timeout <= time():			
 			h = crypto.digest.Digest()
 			Ci = h.digest(crypto.constants.CONSTRUCTION)
 			h = crypto.digest.Digest()
@@ -119,28 +135,38 @@ def tun_loop():
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + Spub)
 			Epriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.random(32))
-			Epub = Spriv.public_key()
+			Epub = Epriv.public_key()
 			Ci = crypto.digest.KDF.kdf1(Ci, Epub)
 			packet = WireGuardInitiatorPacket()
+			ri = os.urandom(4)
+			packet.sender(ri)
 			packet.ephimeral(Epub)
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.ephimeral())
-			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(Spub))
-			aead = crypto.aead.AEAD(k, 0)
-			enc_static = aead.encrypt(Spub, Hi)
-			packet.static(enc_static)
+			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Epriv.exchange(Spub))
+			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
+			packet.static(aead.encrypt(Spub, Hi))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.static())
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(Spub))
-			aead = crypto.aead.AEAD(k, 0)
+			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
 			packet.timestamp(aead.encrypt(utils.misc.Math.tai64n(), Hi))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.timestamp())
-			sm = sm_storage.get_record(hash(dst))
-			sm.set_state(Statemachine.States.I_SENT)
-			# Send initiator packet to the destination
-		else:
-			pass
+			entry.state = Statemachine.States.I_SENT
+			entry.rekey_timeout = time() + Statemachine.RekeyTimeout
+			entry.I = ri
+			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
+		elif entry.state == Statemachine.States.ESTABLISHED:
+			data = data + bytes([0x0] * (16 - len(data) % 16))
+			packet = WireGuardDataPacket()
+			counter = utils.misc.Math.int_to_bytes(entry.NSend)
+			if (len(counter) % 8) > 0:
+				counter = bytes([0x0] * (8 - len(counter) % 8)) + counter
+			packet.counter(counter)
+			packet.receiver(entry.R)
+			#crypto.aead.AEAD(entry.TSend, counter, data, )
+			packet.data()
 
 def wg_loop():
 	while True:
