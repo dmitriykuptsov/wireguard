@@ -186,7 +186,7 @@ class Math():
 
 	@staticmethod
 	def is_coprime(a, b):
-		return gcd(a, b) == 1;
+		return Math.gcd(a, b) == 1;
 
 	@staticmethod
 	def gcd(a, b):
