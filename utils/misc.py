@@ -23,6 +23,7 @@ from math import log, ceil, floor
 from binascii import hexlify
 import logging
 from os import urandom
+from time import time
 
 #print(sys.modules);
 
@@ -290,6 +291,18 @@ class Math():
 			x = (x * gs) % p
 			b = (b * g) % p
 			r = m
+	@staticmethod
+	def tai64n():
+		timestamp = time()
+		seconds = int(timestamp)
+		nanoseconds = int((int(timestamp) - seconds) * 1000000000)
+		seconds_b = Math.int_to_bytes(seconds)
+		nanoseconds_b = Math.int_to_bytes(nanoseconds)
+		if len(seconds_b) < 8:
+			seconds_b = bytes([0] * (8 - len(seconds_b))) + seconds_b
+		if len(nanoseconds_b) < 4:
+			nanoseconds_b = bytes([0] * (4 - len(nanoseconds_b))) + nanoseconds_b
+		return seconds_b + nanoseconds_b
 
 
 		
