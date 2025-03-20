@@ -41,12 +41,24 @@ import sys
 # Exit handler
 import atexit
 # Tun interface
+import crypto.aead
+import crypto.constants
+import crypto.curve25519
+import crypto.digest
 from network import tun
 from network.pytun import TunTunnel
 # Packets
 import packets.packets as p
 from packets.packets import WireGuardDataPacket, WireGuardResponderPacket, WireGuardInitiatorPacket, WireGuardPacket, WireGuardCookiePacket
 from packets.IPv4 import IPv4Packet
+# Statemachine classes
+from states import Statemachine
+# Cryptography
+import crypto
+# OS stuff
+import os
+# Misc stuff
+import utils.misc
 
 # Configure logging to console and file
 logging.basicConfig(
@@ -83,8 +95,12 @@ tun = TunTunnel(pattern = "wg0");
 #tun.set_ipv4(address);
 tun.set_mtu(MTU);
 
-SA = {}
-SM = {}
+sa_storage = Statemachine.Storage()
+sm_storage = Statemachine.Storage()
+
+# Read this from file instead
+Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.random(32))
+Spub = Spriv.public_key()
 
 def tun_loop():
 	while True:
@@ -94,9 +110,34 @@ def tun_loop():
 		# 1) Check the destination
 		# 2) If the association exists then send encrypted packet to the destination
 		# 3) If no destination exists, initiate the 
-		sa = SA.get(dst, None)
+		sa = sa_storage.get_record(hash(dst))
 		if not sa:
+			h = crypto.digest.Digest()
+			Ci = h.digest(crypto.constants.CONSTRUCTION)
+			h = crypto.digest.Digest()
+			Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + Spub)
+			Epriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.random(32))
+			Epub = Spriv.public_key()
+			Ci = crypto.digest.KDF.kdf1(Ci, Epub)
 			packet = WireGuardInitiatorPacket()
+			packet.ephimeral(Epub)
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + packet.ephimeral())
+			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(Spub))
+			aead = crypto.aead.AEAD(k, 0)
+			enc_static = aead.encrypt(Spub, Hi)
+			packet.static(enc_static)
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + packet.static())
+			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(Spub))
+			aead = crypto.aead.AEAD(k, 0)
+			packet.timestamp(aead.encrypt(utils.misc.Math.tai64n(), Hi))
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + packet.timestamp())
+			sm = sm_storage.get_record(hash(dst))
+			sm.set_state(Statemachine.States.I_SENT)
 			# Send initiator packet to the destination
 		else:
 			pass
