@@ -11,6 +11,8 @@ class CryptoRoutingEntry():
     TRecv  = None
     NSend  = 0
     NRecv  = 0
+    Cr     = None
+    Ci     = None
     state  = None
     rekey_timeout = 0
 
