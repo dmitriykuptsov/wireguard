@@ -67,20 +67,21 @@ class ECDHNIST256():
 		return x + y;
 
 	def compress_point(self, Q):
-		return (Q.get_x() | (1 << 255) if Q.get_y() % 0x2 else Q.get_x())
+		#return (Q.get_x() | (1 << 255) if Q.get_y() % 0x2 else Q.get_x())
+		return (Q.get_x(), Q.get_y() % 0x2)
 	
-	def decompress_point(self, x):
-		is_odd = (x >> 255) & 1
-		x = x & ((1 << 255) - 1)
-		rhs = (x**3 + self.a*x + self.b) % self.modulus
-		y = pow(rhs, (self.modulus + 1) // 4, self.modulus)
-		if bool(y & 0x1) != bool(is_odd):
+	def decompress_point(self, x, is_odd):
+		y = misc.Math.modular_sqrt(x**3 + self.a*x + self.b, self.modulus)
+		if bool(y & 0x1) == bool(is_odd):
 			return misc.ECPoint(x, y)
 		return misc.ECPoint(x, self.modulus - y)
-	
+
 ec = ECDHNIST256()
 ec.set_private_key(0xC88F01F510D9AC3F70A292DAA2316DE544E9AAB8AFE84049C62A9C57862D1433)
-print(ec.generate_public_key())
+print("Public Key:")
+Q = ec.generate_public_key()
+print(Q)
+print("--------------------------------")
 ec2 = ECDHNIST256()
 ec2.set_private_key(0xC6EF9C5D78AE012A011164ACB397CE2088685D8F06BF9BE0B283AB46476BEE53)
 print(ec2.generate_public_key())
@@ -89,7 +90,9 @@ print(ec.compute_shared_secret(ec2.generate_public_key()))
 #public = ec.generate_public_key()
 #print(public)
 #print("public")
-Q = ec.generate_public_key()
-x = ec.compress_point(Q)
-dQ = ec.decompress_point(x)
+#Q = ec.generate_public_key()
+(x, is_odd) = ec.compress_point(Q)
+dQ = ec.decompress_point(x, is_odd)
+print("Decompressed:")
 print(dQ)
+print("--------------------------------")
