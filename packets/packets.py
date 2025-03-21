@@ -23,14 +23,16 @@ SENDER_LENGTH = 4
 SENDER_OFFSET = 4
 EPHIMERAL_LENGTH = 32
 EPHIMERAL_OFFSET = 8
-STATIC_LENGTH = 32
+STATIC_LENGTH = 32 + 16
 STATIC_OFFSET = 40
-TIMESTAMP_LENGTH = 12
-TIMESTAMP_OFFSET = 72
+TIMESTAMP_LENGTH = 12 + 16
+TIMESTAMP_OFFSET = 72 + 16
 MAC1_LENGTH = 16
-MAC1_OFFSET = 84
+MAC1_OFFSET = 84 + 32
 MAC2_LENGTH = 16
-MAC2_OFFSET = 100
+MAC2_OFFSET = 100 + 32
+INITIATOR_MSG_ALPHA_OFFSET = 84 + 32
+INITIATOR_MSG_BETA_OFFSET = 100 + 32
 
 class WireGuardInitiatorPacket(WireGuardPacket):
     def __init__(self, buffer):
@@ -45,7 +47,7 @@ class WireGuardInitiatorPacket(WireGuardPacket):
                                                             MAC2_LENGTH)
             self.buffer[TYPE_OFFSET] = WIREGUARD_INITIATOR_TYPE
         self.type(WIREGUARD_INITIATOR_TYPE)
-        
+
     def sender(self, s):
         if s:
             self.buffer[SENDER_OFFSET:SENDER_OFFSET+SENDER_LENGTH] = s
@@ -88,10 +90,14 @@ RECEIVER_LENGTH = 4
 RECEIVER_OFFSET = 8
 EPHIMERAL_LENGTH = 32
 EPHIMERAL_OFFSET = 12
+EMPTY_LENGTH = 16
+EMPTY_OFFSET = 44
 MAC1_LENGTH = 16
-MAC1_OFFSET = 44
+MAC1_OFFSET = 60
 MAC2_LENGTH = 16
-MAC2_OFFSET = 60
+MAC2_OFFSET = 76
+RESPONDER_MSG_ALPHA_OFFSET = 60
+RESPONDER_MSG_BETA_OFFSET = 76
 
 class WireGuardResponderPacket(WireGuardPacket):
     def __init__(self, buffer):
@@ -119,6 +125,12 @@ class WireGuardResponderPacket(WireGuardPacket):
             self.buffer[EPHIMERAL_OFFSET:EPHIMERAL_LENGTH+EPHIMERAL_OFFSET] = e
         else:
             return self.buffer[EPHIMERAL_OFFSET:EPHIMERAL_LENGTH+EPHIMERAL_OFFSET]
+    
+    def empty(self, e):
+        if e:
+            self.buffer[EMPTY_OFFSET:EMPTY_LENGTH+EMPTY_OFFSET] = e
+        else:
+            return self.buffer[EMPTY_OFFSET:EMPTY_LENGTH+EMPTY_OFFSET]
     
     def mac1(self, m):
         if m:
