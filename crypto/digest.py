@@ -83,6 +83,17 @@ class KDF():
 		hmac = HMACDigest(tau0)
 		tau2 = hmac.digest(tau1 + bytes([0x2]))
 		return (tau1, tau2)
+	@staticmethod
+	def kdf3(key, input):
+		hmac = HMACDigest(key)
+		tau0 = hmac.digest(input)
+		hmac = HMACDigest(tau0)
+		tau1 = hmac.digest(bytes([0x1]))
+		hmac = HMACDigest(tau0)
+		tau2 = hmac.digest(tau1 + bytes([0x2]))
+		hmac = HMACDigest(tau0)
+		tau3 = hmac.digest(tau2 + bytes([0x3]))
+		return (tau1, tau2, tau3)
 
 #from binascii import hexlify
 #h = HMACDigest(b'testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest')
