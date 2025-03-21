@@ -295,7 +295,7 @@ class Math():
 	def tai64n():
 		timestamp = time()
 		seconds = int(timestamp)
-		nanoseconds = int((int(timestamp) - seconds) * 1000000000)
+		nanoseconds = int((timestamp - seconds) * 1000000000)
 		seconds_b = Math.int_to_bytes(seconds)
 		nanoseconds_b = Math.int_to_bytes(nanoseconds)
 		if len(seconds_b) < 8:
