@@ -19,4 +19,4 @@ CONSTRUCTION = "Noise_IKpsk2_25519_ChaChaPoly_BLAKE2s".encode("UTF-8")
 IDENTIFIER = "WireGuard v1 zx2c4 Jason@zx2c4.com".encode("UTF-8")
 LABEL_MAC1 = "mac1----".encode("UTF-8")
 LABEL_COOKIE = "cookie--".encode("UTF-8")
-
+EMPTY = "".encode("UTF-8")
