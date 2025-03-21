@@ -89,7 +89,7 @@ def config_loop():
 			command=command.decode("ASCII").strip()
 			if command == "status":
 				conn.send("Status: \n".encode("ASCII"))
-			elif command == "add route":
+			elif command.startswith("add route"):
 				command = command.removeprefix("add route")
 				(ip, prefix, key, port) = command.split(" ")
 				ip_bytes = bytes([int(x) for x in ip.split(".")])
@@ -99,6 +99,10 @@ def config_loop():
 												   utils.misc.Math.bytes_to_int(prefix), \
 													key, port)
 				table.add(entry)
+			elif command.startswith("list routes"):
+				for e in table.table:
+					conn.send(str(e).encode("ASCII"))
+					conn.send("\n".encode("ASCII"))
 			elif command.strip() == "exit" or command.strip() == "":
 				conn.close();
 				reading = False;
@@ -121,16 +125,17 @@ def tun_loop():
 		data = tun.recv();
 		ip = IPv4Packet(data);
 		dst = utils.misc.Math.bytes_to_int(ip.get_destination_address());
-		entry = table.get(dst)
+		entry = table.get_by_ip(dst)
 		if not entry:
 			continue
-		if entry.state != Statemachine.States.ESTABLISHED and entry.rekey_timeout <= time():			
+		if entry.state != Statemachine.States.ESTABLISHED and entry.rekey_timeout <= time():
+			Srpub = entry.key
 			h = crypto.digest.Digest()
 			Ci = h.digest(crypto.constants.CONSTRUCTION)
 			h = crypto.digest.Digest()
 			Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
 			h = crypto.digest.Digest()
-			Hi = h.digest(Hi + Spub)
+			Hi = h.digest(Hi + Srpub)
 			Epriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.random(32))
 			Epub = Epriv.public_key()
 			Ci = crypto.digest.KDF.kdf1(Ci, Epub)
@@ -140,12 +145,12 @@ def tun_loop():
 			packet.ephimeral(Epub)
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.ephimeral())
-			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Epriv.exchange(Spub))
+			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Epriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
 			packet.static(aead.encrypt(Spub, Hi))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.static())
-			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(Spub))
+			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
 			packet.timestamp(aead.encrypt(utils.misc.Math.tai64n(), Hi))
 			h = crypto.digest.Digest()
@@ -153,6 +158,14 @@ def tun_loop():
 			entry.state = Statemachine.States.I_SENT
 			entry.rekey_timeout = time() + Statemachine.RekeyTimeout
 			entry.I = ri
+			entry.Ci = Ci
+			entry.Hi = Hi
+			entry.Epub = Epub
+			entry.Epriv = Epriv
+			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
+			h = crypto.digest.Digest()
+			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub), buffer)
+			packet.mac1(m)
 			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
 		elif entry.state == Statemachine.States.ESTABLISHED:
 			data = data + bytes([0x0] * (16 - len(data) % 16))
@@ -170,15 +183,121 @@ def wg_loop():
 		packet = WireGuardPacket(data)
 		if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
 			packet = WireGuardInitiatorPacket(data)
+			h = crypto.digest.Digest()
+			Ci = h.digest(crypto.constants.CONSTRUCTION)
+			h = crypto.digest.Digest()
+			Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + Spub)
+			Epub = packet.ephimeral()
+			Ci = crypto.digest.KDF.kdf1(Ci, Epub)
+			ri = packet.sender()
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + Epub)
+			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
+			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
+			Sipub = aead.decrypt(packet.static(), Hi)
+			entry = table.get_by_key(Sipub)
+			if not entry:
+				continue
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + packet.static())
+			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
+			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))			
+			timestamp = aead.encrypt(packet.timestamp(), Hi)
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + timestamp)
+			
+			# Create response here...
+			Cr = Ci
+			Hr = Hi
+
+			Erpriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.random(32))
+			Erpub = Erpriv.public_key()
+			entry.Epub = Erpub
+			entry.Epriv = Erpriv
+			Cr = crypto.digest.KDF.kdf1(Cr, Erpub)
+			packet = WireGuardResponderPacket()
+			packet.ephimeral(Epub)
+			ii = os.urandom(4)
+			packet.sender(ii)
+			packet.receiver(ri)
+			h = crypto.digest.Digest()
+			Hr = h.digest(Hr + packet.ephimeral())
+			Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
+			Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
+			Q = bytes([0x0] * 4)
+			(Cr, tau, k) = crypto.digest.KDF.kdf3(Cr, Q)
+			h = crypto.digest.Digest()
+			Hr = h.digest(Hr + tau)
+			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))			
+			packet.empty(aead.encrypt(crypto.constants.EMPTY, Hr))
+			h = crypto.digest.Digest()
+			Hr = h.digest(Hr + packet.empty())
+
+			buffer = packet.buffer[:p.RESPONDER_MSG_ALPHA_OFFSET]
+			h = crypto.digest.Digest()
+			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub), buffer)
+			packet.mac1(m)
+
+			(Trecv, Tsend) = crypto.digest.KDF.kdf2(Cr, crypto.constants.EMPTY)
+
+			wg_socket.sendto(packet.buffer, address)
+			entry.state = Statemachine.States.R_SENT
+			entry.rekey_timeout = time() + Statemachine.RekeyTimeout
+			entry.R = ii
+			entry.TSend = Tsend
+			entry.TRecv = Trecv
+
 		elif packet.type() == p.WIREGUARD_RESPONDER_TYPE:
 			packet = WireGuardResponderPacket(data)
+			ir = packet.sender()
+			ii = packet.receiver()
+			entry = table.get_by_id(ii)
+			if not entry:
+				continue
+
+			Cr = entry.Ci
+			Hr = entry.Hi
+
+			Erpub = packet.ephimeral()
+			Cr = crypto.digest.KDF.kdf1(Cr, Epub)
+			h = crypto.digest.Digest()
+			Hr = h.digest(Hr + packet.ephimeral())
+			Eipriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(entry.Epriv)
+
+			Cr = crypto.digest.KDF.kdf1(Cr, Eipriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
+			Cr = crypto.digest.KDF.kdf1(Cr, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
+			Q = bytes([0x0] * 4)
+			(Cr, tau, k) = crypto.digest.KDF.kdf3(Cr, Q)
+			h = crypto.digest.Digest()
+			Hr = h.digest(Hr + tau)
+			h = crypto.digest.Digest()
+			Hr = h.digest(Hr + packet.empty())
+
+			(Tsend, Trecv) = crypto.digest.KDF.kdf2(Cr, crypto.constants.EMPTY)
+
+			entry.state = Statemachine.States.ESTABLISHED
+			entry.rekey_timeout = time() + Statemachine.RekeyTimeout
+			entry.R = ir
+			entry.TSend = Tsend
+			entry.TRecv = Trecv
+
 		elif packet.type() == p.WIREGUARD_TRANSPORT_DATA_TYPE:
 			packet = WireGuardDataPacket(data);
+			ii = packet.receiver()
+			entry = table.get_by_id(ii)
+			if not entry:
+				continue
 			data = packet.data()
-			# 1) Verify the packet, decrypt and send into wg0
-			tun.send(data)
+			Nsend = utils.misc.Math.bytes_to_int(packet.counter())
+			aead = crypto.aead.AEAD(entry.TRecv, packet.counter())
+			data = aead.decrypt(data, crypto.constants.EMPTY)
+			ipv4 = IPv4Packet(data)
+			tun.send(ipv4.get_buffer()[:ipv4.get_total_length()])
 		elif packet.type() == p.WIREGUARD_COOKIE_REPLY_TYPE:
 			packet = WireGuardCookiePacket(data)
+			
 			# 1) Send initiator packet
 
 wg_th_loop = threading.Thread(target = wg_loop, args = (), daemon = True);
