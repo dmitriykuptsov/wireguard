@@ -110,7 +110,7 @@ def config_loop():
 					reading = False;
 		except Exception as e:
 			logging.critical(e)
-		s.close()
+			conn.close()
 
 wg_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 wg_socket.bind(('', 12000))
