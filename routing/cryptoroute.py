@@ -24,7 +24,7 @@ class CryptoRoutingEntry():
     cookie = "".encode("UTF-8")
     cookie_timeout = 0
 
-    def __init__(self, ip_s, ip, prefix, key, port):
+    def __init__(self, ip, prefix, key, port, ip_s):
         self.ip_s = ip_s
         self.ip = ip
         self.prefix = prefix
@@ -44,7 +44,6 @@ class CryptoRoutingEntry():
         if id == self.I:
             return True
         return False
-    
     def __str__(self):
         prefix = Math.int_to_bytes(self.prefix)
         prefix = prefix[0] + "." + prefix[1] + "." + prefix[2] + "." + prefix[3]
