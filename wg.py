@@ -315,3 +315,5 @@ def maintenance():
 	while True:
 		logging.debug("Periodic task")
 		sleep(1)
+
+maintenance()
