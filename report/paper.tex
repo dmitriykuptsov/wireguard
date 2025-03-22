@@ -41,10 +41,20 @@
 
 \begin{document}
 \sloppy
-\title{WireGuard: Proof-of-a-concept implementation}
+\title{Crypto routing with WireGuard: Proof-of-a-concept implementation}
 \maketitle
 \begin{abstract}
+WireGuard is a recent development of novel VPN protocol that 
+requires 1-RTT to establish secure, authenticated channel between
+the peers. WireGuard revolves around the idea of crypto routing 
+- routing based on the public keys of the peers. 
 
+WireGuard uses EC curve X25519 for identification and authentication,
+and a set of novel algorithms to secure data plane traffic - ChaCha20 and Blake2s 
+algorithms. In this document we present a simple implementation of WireGuard
+protocol in userspace using Python language. Our implmentation, although
+a proof-of-a-concept, allows for achiving 70Mb/s throughput which is sufficient
+for individual usage.
 \end{abstract}
 
 %\input intro.tex 
