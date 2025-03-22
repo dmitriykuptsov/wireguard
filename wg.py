@@ -65,6 +65,8 @@ import routing
 # Timing 
 from time import time
 from time import sleep
+from config.config import Config
+from base64 import b64encode
 
 # Configure logging to console and file
 logging.basicConfig(
@@ -76,6 +78,7 @@ logging.basicConfig(
 	]
 );
 
+config = Config("config/configuration.txt")
 table = routing.cryptoroute.RoutingTable()
 
 def config_loop():
@@ -90,7 +93,18 @@ def config_loop():
 				command = conn.recv(2000);
 				command=command.decode("ASCII").strip()
 				if command == "status":
-					conn.send("Status: \n".encode("ASCII"))
+					conn.send("Key: \n".encode("ASCII"))
+					conn.send(config.get(Config.KEY).encode("ASCII"))
+					conn.send("\n".encode("ASCII"))
+					Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(config.get(Config.KEY))
+					Spub = Spriv.public_key()
+					conn.send("Private key: \n".encode("ASCII"))
+					conn.send(b64encode(Spub).encode("ASCII"))
+					conn.send(config.get(Config.PEER).encode("ASCII"))
+					conn.send("\n".encode("ASCII"))
+					conn.send(config.get(Config.PORT).encode("ASCII"))
+					conn.send("\n".encode("ASCII"))
+					
 				elif command.startswith("add route"):
 					command = command.removeprefix("add route").strip()
 					(ip, prefix, key, port, ip_s) = command.split(" ")
@@ -127,7 +141,7 @@ tun.set_ipv4("192.168.10.1")
 tun.set_mtu(MTU);
 
 # Read this from file instead
-Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.urandom(32))
+Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(config.get(Config.KEY))
 Spub = Spriv.public_key()
 
 def tun_loop():
