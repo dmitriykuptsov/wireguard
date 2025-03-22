@@ -92,7 +92,7 @@ def config_loop():
 				if command == "status":
 					conn.send("Status: \n".encode("ASCII"))
 				elif command.startswith("add route"):
-					command = command.removeprefix("add route")
+					command = command.removeprefix("add route").strip()
 					(ip, prefix, key, port, ip_s) = command.split(" ")
 					logging.debug("Adding crypto routing entry....")
 					logging.debug("IP:" + ip)
