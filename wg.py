@@ -64,6 +64,7 @@ import utils.misc
 import routing
 # Timing 
 from time import time
+from time import sleep
 
 # Configure logging to console and file
 logging.basicConfig(
@@ -309,3 +310,8 @@ logging.info("Starting the WireGuard");
 wg_th_loop.start();
 config_th_loop.start();
 tun_th_loop.start();
+
+def maintenance():
+	while True:
+		logging.debug("Periodic task")
+		sleep(1)
