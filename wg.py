@@ -117,7 +117,7 @@ tun = TunTunnel(pattern = "wg0");
 tun.set_mtu(MTU);
 
 # Read this from file instead
-Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.random(32))
+Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.urandom(32))
 Spub = Spriv.public_key()
 
 def tun_loop():
@@ -136,7 +136,7 @@ def tun_loop():
 			Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + Srpub)
-			Epriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.random(32))
+			Epriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.urandom(32))
 			Epub = Epriv.public_key()
 			Ci = crypto.digest.KDF.kdf1(Ci, Epub)
 			packet = WireGuardInitiatorPacket()
@@ -212,7 +212,7 @@ def wg_loop():
 			Cr = Ci
 			Hr = Hi
 
-			Erpriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.random(32))
+			Erpriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.urandom(32))
 			Erpub = Erpriv.public_key()
 			entry.Epub = Erpub
 			entry.Epriv = Erpriv
