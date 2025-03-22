@@ -96,7 +96,7 @@ def config_loop():
 					conn.send("Key: ".encode("ASCII"))
 					conn.send(config.get(Config.KEY).encode("ASCII"))
 					conn.send("\n".encode("ASCII"))
-					Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(b64encode(config.get(Config.KEY)))
+					Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(b64decode(config.get(Config.KEY)))
 					Spub = Spriv.public_key()
 					conn.send("Private key: ".encode("ASCII"))
 					conn.send(b64encode(Spriv.private_bytes).encode("ASCII"))
