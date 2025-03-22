@@ -71,7 +71,7 @@ from binascii import hexlify
 
 # Configure logging to console and file
 logging.basicConfig(
-	level=logging.DEBUG,
+	level=logging.CRITICAL,
 	format="%(asctime)s [%(levelname)s] %(message)s",
 	handlers=[
 		logging.FileHandler("wg.log"),
@@ -137,7 +137,7 @@ def config_loop():
 
 wg_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 wg_socket.bind(('', int(config.get(Config.PORT))))
-MTU = 1460
+MTU = 1000
 
 tun = TunTunnel(pattern = "wg0");
 tun.set_ipv4(config.get(Config.LOCAL))
@@ -363,7 +363,7 @@ def wg_loop():
 			data = aead.decrypt(packet.data(), crypto.constants.EMPTY)
 			ipv4 = IPv4Packet(data)
 			tun.send(ipv4.get_buffer()[:ipv4.get_total_length() + 4])
-			logging.debug(hexlify(ipv4.get_buffer()))
+			#logging.debug(hexlify(ipv4.get_buffer()))
 		elif packet.type() == p.WIREGUARD_COOKIE_REPLY_TYPE:
 			packet = WireGuardCookiePacket(data)
 
