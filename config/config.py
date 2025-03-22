@@ -4,6 +4,7 @@ class Config():
     KEY = "private"
     PORT = "port"
     PEER = "peer"
+    LOCAL = "local"
 
     def __init__(self, filename):
         fd = open(filename)

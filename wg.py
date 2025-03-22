@@ -93,9 +93,6 @@ def config_loop():
 				command = conn.recv(2000);
 				command=command.decode("ASCII").strip()
 				if command == "status":
-					conn.send("Key: ".encode("ASCII"))
-					conn.send(config.get(Config.KEY).encode("ASCII"))
-					conn.send("\n".encode("ASCII"))
 					Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(b64decode(config.get(Config.KEY)))
 					Spub = Spriv.public_key()
 					conn.send("Private key: ".encode("ASCII"))
@@ -122,9 +119,9 @@ def config_loop():
 					ip_bytes = bytes([int(x) for x in ip.split(".")])
 					prefix_bytes = bytes([int(x) for x in prefix.split(".")])
 					port = int(port)
-					entry = routing.cryptoroute.CryptoRoutingEntry(utils.misc.Math.bytes_to_int(ip), \
-													utils.misc.Math.bytes_to_int(prefix), \
-														key, int(port), ip_s)
+					entry = routing.cryptoroute.CryptoRoutingEntry(utils.misc.Math.bytes_to_int(ip_bytes), \
+													utils.misc.Math.bytes_to_int(prefix_bytes), \
+														b64decode(key), int(port), ip_s)
 					table.add(entry)
 				elif command.startswith("list routes"):
 					for e in table.table:
@@ -142,7 +139,7 @@ wg_socket.bind(('', 12000))
 MTU = 1460
 
 tun = TunTunnel(pattern = "wg0");
-tun.set_ipv4("192.168.10.1")
+tun.set_ipv4(config.get(Config.PEER))
 tun.set_mtu(MTU);
 
 # Read this from file instead

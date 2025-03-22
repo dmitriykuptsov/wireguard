@@ -46,8 +46,10 @@ class CryptoRoutingEntry():
         return False
     def __str__(self):
         prefix = Math.int_to_bytes(self.prefix)
-        prefix = prefix[0] + "." + prefix[1] + "." + prefix[2] + "." + prefix[3]
-        return b64encode(self.key) + " " + self.ip_s + " " + prefix
+        prefix = str(prefix[0]) + "." + str(prefix[1]) + "." + str(prefix[2]) + "." + str(prefix[3])
+        ip = Math.int_to_bytes(self.ip)
+        ip = str(ip[0]) + "." + str(ip[1]) + "." + str(ip[2]) + "." + str(ip[3])
+        return b64encode(self.key).decode("ASCII") + " " + ip + " " + prefix + " " + str(self.port) + " " + self.ip_s
 
 def recmp(left, right):
     if left.ip < right.ip:
