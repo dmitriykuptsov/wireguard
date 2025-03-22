@@ -150,64 +150,53 @@ Spub = Spriv.public_key()
 def tun_loop():
 	while True:
 		data = tun.recv(MTU);
-		logging.debug("Got packet on wg0...")
+		#logging.debug("Got packet on wg0...")
 		ip = IPv4Packet(data);
 		dst = utils.misc.Math.bytes_to_int(ip.get_destination_address());
-		logging.debug(hexlify(data))
 
 		ipv4 = IPv4Packet(data)
-		ip = ipv4.get_source_address()
-		logging.debug(str(ip[0]) + "." + str(ip[1]) + "." + str(ip[2]) + "." + str(ip[3]))
-		ip = ipv4.get_destination_address()
-		logging.debug(str(ip[0]) + "." + str(ip[1]) + "." + str(ip[2]) + "." + str(ip[3]))
-		logging.debug(ipv4.get_protocol())
-		logging.debug(ipv4.get_ihl())
-		logging.debug(ipv4.get_total_length())
-		logging.debug(ipv4.get_checksum())
-		logging.debug(ipv4.get_flags())
-		logging.debug(ipv4.get_ttl())
 		
 		entry = table.get_by_ip(dst)
 		if not entry:
 			logging.debug("Entry is missing....")
 			continue
 		if entry.state != Statemachine.States.ESTABLISHED and entry.rekey_timeout <= time():
-			logging.debug("State is missing... Running key exchange....")
+			#logging.debug("State is missing... Running key exchange....")
 			Srpub = entry.key
 			h = crypto.digest.Digest()
 			Ci = h.digest(crypto.constants.CONSTRUCTION)
 			h = crypto.digest.Digest()
 			Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
-			logging.debug("(1) Hi HEX %s" % hexlify(Hi))
+			#logging.debug("(1) Hi HEX %s" % hexlify(Hi))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + Srpub)
-			logging.debug("Peer's public key %s" % hexlify(Srpub))
+			#logging.debug("Peer's public key %s" % hexlify(Srpub))
 			Epriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.urandom(32))
 			Epub = Epriv.public_key()
-			logging.debug("Ci HEX %s" % hexlify(Ci))
-			logging.debug("Epub %s" % hexlify(Epub))
+			#logging.debug("Ci HEX %s" % hexlify(Ci))
+			#logging.debug("Epub %s" % hexlify(Epub))
 			Ci = crypto.digest.KDF.kdf1(Ci, Epub)
-			logging.debug("Ci HEX %s" % hexlify(Ci))
+			#logging.debug("Ci HEX %s" % hexlify(Ci))
 			packet = WireGuardInitiatorPacket()
 			ii = os.urandom(4)
 			packet.sender(ii)
 			packet.ephimeral(Epub)
-			logging.debug("Getting own EPUB %s" % hexlify(packet.ephimeral()))
+			#logging.debug("Getting own EPUB %s" % hexlify(packet.ephimeral()))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.ephimeral())
-			logging.debug("Hi HEX %s" % hexlify(Hi))
+			#logging.debug("Hi HEX %s" % hexlify(Hi))
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Epriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
 			packet.static(aead.encrypt(Spub, Hi))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
-			logging.debug("The public key to be transmitted is .... %s" % (b64encode(aead.decrypt(packet.static(), Hi)[:-16]).decode("ASCII")))
+			#logging.debug("The public key to be transmitted is .... %s" % (b64encode(aead.decrypt(packet.static(), Hi)[:-16]).decode("ASCII")))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.static())
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
 			packet.timestamp(aead.encrypt(utils.misc.Math.tai64n(), Hi))
-			logging.debug("TIMESTAMPT %s" % (hexlify(packet.timestamp())))
-			logging.debug("Hi %s" % (hexlify(Hi)))
+			#logging.debug("TIMESTAMPT %s" % (hexlify(packet.timestamp())))
+			#logging.debug("Hi %s" % (hexlify(Hi)))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.timestamp())
 			entry.state = Statemachine.States.I_SENT
@@ -221,14 +210,11 @@ def tun_loop():
 			h = crypto.digest.Digest()
 			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
 			packet.mac1(m.digest(buffer))
-			logging.debug("Epub %s" % hexlify(packet.ephimeral()))
+			#logging.debug("Epub %s" % hexlify(packet.ephimeral()))
 			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
-			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
+			#logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
 		elif entry.state == Statemachine.States.ESTABLISHED:
 			data = data + bytes([0x0] * (16 - len(data) % 16))
-			logging.debug("---------------")
-			logging.debug(hexlify(data))
-			logging.debug("---------------")
 			packet = WireGuardDataPacket()
 			counter = utils.misc.Math.int_to_bytes(entry.NSend)
 			entry.NSend += 1
@@ -239,38 +225,29 @@ def tun_loop():
 			aead = crypto.aead.AEAD(entry.TSend, counter)
 			packet.data(aead.encrypt(data, crypto.constants.EMPTY))
 			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
-			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
+			#logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
 
 def wg_loop():
 	while True:
 		data, address = wg_socket.recvfrom(MTU)
 		packet = WireGuardPacket(data)
-		logging.debug("Got WireGuard packet %s" % str(packet.type()))
 		if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
-			logging.debug("Got WireGuard Initiator packet")
 			packet = WireGuardInitiatorPacket(data)
 			h = crypto.digest.Digest()
 			Ci = h.digest(crypto.constants.CONSTRUCTION)
 			h = crypto.digest.Digest()
 			Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
-			logging.debug("(1) Hi HEX %s" % hexlify(Hi))
 			h = crypto.digest.Digest()
-			logging.debug("Own public key %s" % hexlify(Spub))
 			Hi = h.digest(Hi + Spub)
 			Epub = packet.ephimeral()
-			logging.debug("Ci HEX %s" % hexlify(Ci))
-			logging.debug("Epub %s" % hexlify(packet.ephimeral()))
 			Ci = crypto.digest.KDF.kdf1(Ci, Epub)
-			logging.debug("Ci HEX %s" % hexlify(Ci))
 			ri = packet.sender()
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + Epub)
-			logging.debug("Hi HEX %s" % hexlify(Hi))
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
 			Sipub = aead.decrypt(packet.static(), Hi)[:-16]
 			entry = table.get_by_key(Sipub)
-			logging.debug("Got public key .... %s" % (b64encode(Sipub).decode("ASCII")))
 			if not entry:
 				logging.debug("Missing entry.....")
 				continue
@@ -279,8 +256,6 @@ def wg_loop():
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))			
 			timestamp = aead.decrypt(packet.timestamp(), Hi)
-			logging.debug("TIMESTAMPT %s" % (hexlify(packet.timestamp())))
-			logging.debug("Hi %s" % (hexlify(Hi)))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.timestamp())
 			
@@ -292,21 +267,13 @@ def wg_loop():
 			Erpub = Erpriv.public_key()
 			entry.Epub = Erpub
 			entry.Epriv = Erpriv
-			logging.debug("CHECK 0: Erpub %s" % (hexlify(Erpub)))
-			logging.debug("CHECK 0: Cr %s" % (hexlify(Cr)))
-			logging.debug("CHECK 0: Hr %s" % (hexlify(Hr)))
 
 			Cr = crypto.digest.KDF.kdf1(Cr, Erpub)
-			logging.debug("CHECK 1: Cr %s" % (hexlify(Cr)))
 			packet = WireGuardResponderPacket()
 			packet.ephimeral(Erpub)
 			ii = os.urandom(4)
 			packet.sender(ii)
 			packet.receiver(ri)
-			logging.debug("CHECK 2: ii ir")
-			logging.debug(hexlify(packet.sender()))
-			logging.debug(hexlify(packet.receiver()))
-			logging.debug("===========")
 			h = crypto.digest.Digest()
 			Hr = h.digest(Hr + packet.ephimeral())
 			Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
@@ -327,7 +294,7 @@ def wg_loop():
 
 			(Trecv, Tsend) = crypto.digest.KDF.kdf2(Cr, crypto.constants.EMPTY)
 
-			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
+			#logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
 
 			wg_socket.sendto(packet.buffer, (entry.ip_s, int(entry.port)))
 			entry.state = Statemachine.States.ESTABLISHED
@@ -346,9 +313,6 @@ def wg_loop():
 			packet = WireGuardResponderPacket(data)
 			ii = packet.sender()
 			ir = packet.receiver()
-			
-			logging.debug("RECEVIER ID: %s" % hexlify(ir))
-			logging.debug("SENDER ID: %s" % hexlify(ii))
 
 			entry = table.get_by_id(ir)
 
@@ -359,14 +323,9 @@ def wg_loop():
 			Hr = entry.Hi
 
 			Erpub = packet.ephimeral()
-			logging.debug("CHECK 0: Erpub %s" % (hexlify(Erpub)))
-			logging.debug("CHECK 0: Cr %s" % (hexlify(Cr)))
-			logging.debug("CHECK 0: Hr %s" % (hexlify(Hr)))
 			Cr = crypto.digest.KDF.kdf1(Cr, Erpub)
-			logging.debug("CHECK 1: Cr %s" % (hexlify(Cr)))
 			h = crypto.digest.Digest()
 			Hr = h.digest(Hr + Erpub)
-			logging.debug("Eipriv %s" % (hexlify(entry.Epriv)))
 			Eipriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(entry.Epriv)
 			Cr = crypto.digest.KDF.kdf1(Cr, Eipriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
 			Cr = crypto.digest.KDF.kdf1(Cr, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
@@ -386,8 +345,6 @@ def wg_loop():
 			entry.rekey_timeout = time() + Statemachine.RekeyTimeout
 			entry.R = ir
 			entry.I = ii
-			logging.debug("RECEVIER ID: %s" % hexlify(ir))
-			logging.debug("SENDER ID: %s" % hexlify(ii))
 			entry.TSend = Tsend
 			entry.TRecv = Trecv
 
@@ -398,30 +355,14 @@ def wg_loop():
 			packet = WireGuardDataPacket(data);
 			ri = packet.receiver()
 			entry = table.get_by_id(ri)
-			logging.debug("RECEVIER ID: %s" % hexlify(ri))
+			#logging.debug("RECEVIER ID: %s" % hexlify(ri))
 			if not entry:
 				continue
 			Nsend = utils.misc.Math.bytes_to_int(packet.counter())
 			aead = crypto.aead.AEAD(entry.TRecv, packet.counter())
 			data = aead.decrypt(packet.data(), crypto.constants.EMPTY)
-			logging.debug("---------------")
-			logging.debug(hexlify(data))
-			logging.debug("---------------")
-			logging.debug(hexlify(data[:-12]))
-			ipv4 = IPv4Packet(data[:-12])
-			ip = ipv4.get_source_address()
-			logging.debug(str(ip[0]) + "." + str(ip[1]) + "." + str(ip[2]) + "." + str(ip[3]))
-			ip = ipv4.get_destination_address()
-			logging.debug(str(ip[0]) + "." + str(ip[1]) + "." + str(ip[2]) + "." + str(ip[3]))
-			logging.debug(ipv4.get_protocol())
-			logging.debug(ipv4.get_ihl())
-			logging.debug(ipv4.get_total_length())
-			logging.debug(ipv4.get_checksum())
-			logging.debug(ipv4.get_flags())
-			logging.debug(ipv4.get_ttl())
-			logging.debug(hexlify(ipv4.get_buffer()))
-			logging.debug(hexlify(ipv4.get_buffer()[:ipv4.get_total_length()]))
-			tun.send(ipv4.get_buffer())
+			ipv4 = IPv4Packet(data)
+			tun.send(ipv4.get_buffer()[:ipv4.get_total_length() + 4])
 			logging.debug(hexlify(ipv4.get_buffer()))
 		elif packet.type() == p.WIREGUARD_COOKIE_REPLY_TYPE:
 			packet = WireGuardCookiePacket(data)
