@@ -85,28 +85,31 @@ def config_loop():
 	while True:
 		reading = True
 		conn, addr = s.accept()
-		while reading:
-			command = conn.recv(2000);
-			command=command.decode("ASCII").strip()
-			if command == "status":
-				conn.send("Status: \n".encode("ASCII"))
-			elif command.startswith("add route"):
-				command = command.removeprefix("add route")
-				(ip, prefix, key, port) = command.split(" ")
-				ip_bytes = bytes([int(x) for x in ip.split(".")])
-				prefix_bytes = bytes([int(x) for x in prefix.split(".")])
-				port = int(port)
-				entry = routing.cryptoroute.CryptoRoutingEntry(utils.misc.Math.bytes_to_int(ip), \
-												   utils.misc.Math.bytes_to_int(prefix), \
-													key, port)
-				table.add(entry)
-			elif command.startswith("list routes"):
-				for e in table.table:
-					conn.send(str(e).encode("ASCII"))
-					conn.send("\n".encode("ASCII"))
-			elif command.strip() == "exit" or command.strip() == "":
-				conn.close();
-				reading = False;
+		try:
+			while reading:
+				command = conn.recv(2000);
+				command=command.decode("ASCII").strip()
+				if command == "status":
+					conn.send("Status: \n".encode("ASCII"))
+				elif command.startswith("add route"):
+					command = command.removeprefix("add route")
+					(ip, prefix, key, port, ip_s) = command.split(" ")
+					ip_bytes = bytes([int(x) for x in ip.split(".")])
+					prefix_bytes = bytes([int(x) for x in prefix.split(".")])
+					port = int(port)
+					entry = routing.cryptoroute.CryptoRoutingEntry(utils.misc.Math.bytes_to_int(ip), \
+													utils.misc.Math.bytes_to_int(prefix), \
+														key, port, ip_s)
+					table.add(entry)
+				elif command.startswith("list routes"):
+					for e in table.table:
+						conn.send(str(e).encode("ASCII"))
+						conn.send("\n".encode("ASCII"))
+				elif command.strip() == "exit" or command.strip() == "":
+					conn.close();
+					reading = False;
+		except Exception as e:
+			logging.critical(e)
 		s.close()
 
 wg_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -114,7 +117,7 @@ wg_socket.bind(('', 12000))
 MTU = 1460
 
 tun = TunTunnel(pattern = "wg0");
-#tun.set_ipv4(address);
+tun.set_ipv4("192.168.10.1")
 tun.set_mtu(MTU);
 
 # Read this from file instead
@@ -123,7 +126,8 @@ Spub = Spriv.public_key()
 
 def tun_loop():
 	while True:
-		data = tun.recv();
+		data = tun.recv(MTU);
+		logging.debug("Got packet on wg0...")
 		ip = IPv4Packet(data);
 		dst = utils.misc.Math.bytes_to_int(ip.get_destination_address());
 		entry = table.get_by_ip(dst)
@@ -314,6 +318,6 @@ tun_th_loop.start();
 def maintenance():
 	while True:
 		logging.debug("Periodic task")
-		sleep(1)
+		sleep(5)
 
 maintenance()
