@@ -66,7 +66,7 @@ import routing
 from time import time
 from time import sleep
 from config.config import Config
-from base64 import b64encode
+from base64 import b64encode, b64decode
 
 # Configure logging to console and file
 logging.basicConfig(
@@ -96,7 +96,7 @@ def config_loop():
 					conn.send("Key: \n".encode("ASCII"))
 					conn.send(config.get(Config.KEY).encode("ASCII"))
 					conn.send("\n".encode("ASCII"))
-					Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(config.get(Config.KEY))
+					Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(b64encode(config.get(Config.KEY)))
 					Spub = Spriv.public_key()
 					conn.send("Private key: \n".encode("ASCII"))
 					conn.send(b64encode(Spub).encode("ASCII"))
@@ -141,7 +141,7 @@ tun.set_ipv4("192.168.10.1")
 tun.set_mtu(MTU);
 
 # Read this from file instead
-Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(config.get(Config.KEY))
+Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(b64decode(config.get(Config.KEY)))
 Spub = Spriv.public_key()
 
 def tun_loop():
