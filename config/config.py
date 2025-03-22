@@ -13,3 +13,4 @@ class Config():
             self.parameters[s[0]] = s[1]
     def get(self, key):
         return self.parameters.get(key)
+    

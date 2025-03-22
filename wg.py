@@ -93,18 +93,21 @@ def config_loop():
 				command = conn.recv(2000);
 				command=command.decode("ASCII").strip()
 				if command == "status":
-					conn.send("Key: \n".encode("ASCII"))
+					conn.send("Key: ".encode("ASCII"))
 					conn.send(config.get(Config.KEY).encode("ASCII"))
 					conn.send("\n".encode("ASCII"))
 					Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(b64encode(config.get(Config.KEY)))
 					Spub = Spriv.public_key()
-					conn.send("Private key: \n".encode("ASCII"))
+					conn.send("Private key: ".encode("ASCII"))
+					conn.send(b64encode(Spriv.private_bytes).encode("ASCII"))
+					conn.send("Public key: ".encode("ASCII"))
 					conn.send(b64encode(Spub).encode("ASCII"))
+					conn.send("Peer: ".encode("ASCII"))
 					conn.send(config.get(Config.PEER).encode("ASCII"))
 					conn.send("\n".encode("ASCII"))
+					conn.send("Port: ".encode("ASCII"))
 					conn.send(config.get(Config.PORT).encode("ASCII"))
 					conn.send("\n".encode("ASCII"))
-					
 				elif command.startswith("add route"):
 					command = command.removeprefix("add route").strip()
 					(ip, prefix, key, port, ip_s) = command.split(" ")
