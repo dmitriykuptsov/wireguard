@@ -32,18 +32,29 @@ class CryptoRoutingEntry():
         self.port = port
     
     def match_by_ip(self, dst):
+        prefix = Math.int_to_bytes(self.prefix)
+        prefix = str(prefix[0]) + "." + str(prefix[1]) + "." + str(prefix[2]) + "." + str(prefix[3])
+        print(prefix)
+
+        ip = Math.int_to_bytes(dst)
+        ip = str(ip[0]) + "." + str(ip[1]) + "." + str(ip[2]) + "." + str(ip[3])
+        print(ip)
+        
         dst = dst & self.prefix
         if dst & self.ip == self.ip:
             return True
         return False
+    
     def match_by_key(self, key):
         if key == self.key:
             return True
         return False
+    
     def match_by_id(self, id):
         if id == self.I:
             return True
         return False
+    
     def __str__(self):
         prefix = Math.int_to_bytes(self.prefix)
         prefix = str(prefix[0]) + "." + str(prefix[1]) + "." + str(prefix[2]) + "." + str(prefix[3])

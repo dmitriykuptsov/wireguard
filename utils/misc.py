@@ -82,6 +82,8 @@ class Math():
 
 	@staticmethod
 	def int_to_bytes(number):
+		if number == 0:
+			return bytearray([0x0]);
 		length = int(ceil(Math.num_bits(number) / 8));
 		byte_array = [];
 		for i in range(length - 1, -1, -1):
