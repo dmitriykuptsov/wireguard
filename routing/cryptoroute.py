@@ -1,5 +1,7 @@
 from base64 import b64decode, b64encode
 from utils.misc import Math
+from time import time
+
 class CryptoRoutingEntry():
 
     ip     = None
@@ -21,12 +23,13 @@ class CryptoRoutingEntry():
     Epub   = None
     state  = None
     timestamp = 0
-    rekey_timeout = 0
-    rekey_after_timeout = 0
-    reject_after_timeout = 0
+    rekey_timeout = time()
+    rekey_after_timeout = time()
+    reject_after_timeout = time()
     cookie = "".encode("UTF-8")
     cookie_timeout = 0
     message_sent = 0
+    is_initiator = False
     dst    = None
 
     def __init__(self, ip, prefix, key, port, ip_s):

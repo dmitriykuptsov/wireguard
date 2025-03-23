@@ -165,6 +165,7 @@ def tun_loop():
 		entry.dst = dst
 		if entry.state != Statemachine.States.ESTABLISHED and entry.rekey_timeout <= time():
 			logging.debug("State is missing... Running key exchange....")
+			entry.is_initiator = True
 			Srpub = entry.key
 			h = crypto.digest.Digest()
 			Ci = h.digest(crypto.constants.CONSTRUCTION)
@@ -396,7 +397,7 @@ def wg_loop():
 			if not entry:
 				continue
 			Nsend = utils.misc.Math.bytes_to_int(packet.counter())
-			if entry.NRecv - 10 < Nsend or entry.NRecv + 10 > Nsend:
+			if not (Nsend > entry.NRecv - 10 and Nsend < entry.NRecv + 10):
 				logging.debug("Replay packet")
 				continue
 			aead = crypto.aead.AEAD(entry.TRecv, packet.counter())
@@ -435,6 +436,8 @@ def maintenance():
 			R_reg_interval = time() + 120
 			R = os.urandom(32)
 		for entry in table.table:
+			if not entry.is_initiator:
+				continue
 			if time() - entry.rekey_after_timeout < Statemachine.RekeyAfterTime and \
 				time() - entry.reject_after_timeout < (Statemachine.RejectAfterTime - Statemachine.KeepaliveTimeout - Statemachine.RekeyTimeout) and \
 				entry.message_sent <= Statemachine.RekeyAfterMessages:
@@ -442,7 +445,7 @@ def maintenance():
 			if entry.cookie != crypto.constants.EMPTY and entry.cookie_timeout + Statemachine.RekeyTimeout > time():
 				continue
 			entry.message_sent = 0
-			logging.debug("State is missing... Running key exchange....")
+			logging.debug("State is missing (periodic task)... Running key exchange....")
 			Srpub = entry.key
 			h = crypto.digest.Digest()
 			Ci = h.digest(crypto.constants.CONSTRUCTION)
