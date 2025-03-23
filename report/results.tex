@@ -1,6 +1,26 @@
 \section{Data processing and basic results}
 \label{section:results}
 
+\begin{verbatim}
+sudo ip route add 10.1.1.0/24 via 10.1.1.5
+\end{verbatim}
+
+\begin{verbatim}
+sudo ip route add 10.1.1.0/24 via 10.1.1.6
+\end{verbatim}
+
+\begin{small}
+\begin{verbatim}
+add route 10.1.1.6 255.255.255.255 mRpANbnoDzXz8jczMe/3+aQW5YWqZhLiY+UZhUlKHG4= 14501 192.168.64.19
+\end{verbatim}
+\end{small}
+
+\begin{small}
+\begin{verbatim}
+add route 10.1.1.0 255.255.255.0 8aW8cY51u1DlEoOrco9du8zv8lt/WhC7dMEuSZoZBkE= 14500 192.168.64.16
+\end{verbatim}
+\end{small}
+
 \begin{figure}[!hbt]\centering
   \includegraphics[width=0.45\textwidth]{graphics/throughput.pdf}
   \caption{Distribution of throughput}
