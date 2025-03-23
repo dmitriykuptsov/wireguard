@@ -158,7 +158,6 @@ def tun_loop():
 		#logging.debug("Got packet on wg0...")
 		ip = IPv4Packet(data);
 		dst = utils.misc.Math.bytes_to_int(ip.get_destination_address());
-		ipv4 = IPv4Packet(data)
 		entry = table.get_by_ip(dst)
 		if not entry:
 			logging.debug("Entry is missing....")
