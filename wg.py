@@ -395,6 +395,9 @@ def wg_loop():
 			if not entry:
 				continue
 			Nsend = utils.misc.Math.bytes_to_int(packet.counter())
+			if entry.NRecv - 10 < Nsend or entry.NRecv + 10 > Nsend:
+				logging.debug("Replay packet")
+				continue
 			aead = crypto.aead.AEAD(entry.TRecv, packet.counter())
 			data = aead.decrypt(packet.data(), crypto.constants.EMPTY)
 			ipv4 = IPv4Packet(data)
