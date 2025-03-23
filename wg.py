@@ -412,6 +412,7 @@ config_th_loop.start();
 tun_th_loop.start();
 
 def maintenance():
+	global R_reg_interval
 	while True:
 		logging.debug("Periodic task")
 		if R_reg_interval > time():
