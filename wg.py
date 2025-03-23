@@ -434,6 +434,8 @@ def maintenance():
 		for entry in table.table:
 			if entry.message_sent <= Statemachine.RekeyAfterMessages:
 				continue
+			if entry.cookie != crypto.constants.EMPTY and entry.cookie_timeout + Statemachine.RekeyTimeout > time():
+				continue
 			entry.message_sent = 0
 			logging.debug("State is missing... Running key exchange....")
 			Srpub = entry.key
@@ -491,6 +493,8 @@ def maintenance():
 				m = crypto.digest.MACDigest(entry.cookie)
 				buffer = packet.buffer[:p.RESPONDER_MSG_BETA_OFFSET]
 				packet.mac2(m.digest(buffer))
+			entry.cookie = crypto.constants.EMPTY
+			entry.cookie_timeout = 0
 
 			logging.debug("Epub %s" % hexlify(packet.ephimeral()))
 			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
