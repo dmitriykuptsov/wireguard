@@ -147,6 +147,9 @@ tun.set_mtu(MTU);
 Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(b64decode(config.get(Config.KEY)))
 Spub = Spriv.public_key()
 
+R = os.urandom(32)
+R_reg_interval = time()
+
 under_load = False
 
 def tun_loop():
@@ -231,13 +234,23 @@ def tun_loop():
 
 def wg_loop():
 	while True:
-		data, address = wg_socket.recvfrom(MTU)
+		data, (ip, port) = wg_socket.recvfrom(MTU)
 		packet = WireGuardPacket(data)
 		if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
 			packet = WireGuardInitiatorPacket(data)
-
-			#if under_load:
-			#	packet.mac1()
+			mac1 = packet.mac1()
+			if under_load:
+				ii = packet.sender()
+				m = crypto.digest.MACDigest(R)
+				tau = m.digest(ip.encode("ASCII") + utils.misc.Math.int_to_bytes(int(port)))
+				packet = WireGuardCookiePacket()
+				packet.nonce(os.urandom(24))
+				packet.receiver(ii)
+				d = crypto.digest.Digest()
+				xaead = crypto.aead.xAEAD(d.digest(crypto.constants.LABEL_COOKIE + Spub), packet.nonce())
+				packet.cookie(xaead.encrypt(tau, mac1))
+				wg_socket.sendto(packet.buffer, (ip, int(port)))
+				continue
 			h = crypto.digest.Digest()
 			Ci = h.digest(crypto.constants.CONSTRUCTION)
 			h = crypto.digest.Digest()
@@ -299,6 +312,13 @@ def wg_loop():
 			h = crypto.digest.Digest()
 			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
 			packet.mac1(m.digest(buffer))
+
+			if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
+				packet.mac2(bytes([0x0] * 16))
+			else:
+				m = crypto.digest.MACDigest(entry.cookie)
+				buffer = packet.buffer[:p.RESPONDER_MSG_BETA_OFFSET]
+				packet.mac2(m.digest(buffer))
 
 			(Trecv, Tsend) = crypto.digest.KDF.kdf2(Cr, crypto.constants.EMPTY)
 
@@ -374,6 +394,12 @@ def wg_loop():
 			#logging.debug(hexlify(ipv4.get_buffer()))
 		elif packet.type() == p.WIREGUARD_COOKIE_REPLY_TYPE:
 			packet = WireGuardCookiePacket(data)
+			ri = packet.receiver()
+			entry = table.get_by_id(ri)
+			if not entry:
+				continue
+			entry.cookie = packet
+			entry.cookie_timeout = time()
 
 wg_th_loop = threading.Thread(target = wg_loop, args = (), daemon = True);
 tun_th_loop = threading.Thread(target = tun_loop, args = (), daemon = True);
@@ -388,6 +414,9 @@ tun_th_loop.start();
 def maintenance():
 	while True:
 		logging.debug("Periodic task")
+		if R_reg_interval > time():
+			R_reg_interval = time() + 120
+			R = os.urandom(32)
 		sleep(5)
 
 maintenance()
