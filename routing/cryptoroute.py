@@ -20,6 +20,7 @@ class CryptoRoutingEntry():
     Epriv  = None
     Epub   = None
     state  = None
+    timestamp = 0
     rekey_timeout = 0
     cookie = "".encode("UTF-8")
     cookie_timeout = 0

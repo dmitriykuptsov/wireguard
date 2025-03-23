@@ -147,6 +147,8 @@ tun.set_mtu(MTU);
 Spriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(b64decode(config.get(Config.KEY)))
 Spub = Spriv.public_key()
 
+under_load = False
+
 def tun_loop():
 	while True:
 		data = tun.recv(MTU);
@@ -233,6 +235,9 @@ def wg_loop():
 		packet = WireGuardPacket(data)
 		if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
 			packet = WireGuardInitiatorPacket(data)
+
+			#if under_load:
+			#	packet.mac1()
 			h = crypto.digest.Digest()
 			Ci = h.digest(crypto.constants.CONSTRUCTION)
 			h = crypto.digest.Digest()
@@ -256,6 +261,9 @@ def wg_loop():
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))			
 			timestamp = aead.decrypt(packet.timestamp(), Hi)
+			if entry.timestamp > utils.misc.Math.bytes_to_int(timestamp):
+				continue
+			entry.timestamp = utils.misc.Math.bytes_to_int(timestamp)
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.timestamp())
 			
