@@ -24,6 +24,8 @@ class CryptoRoutingEntry():
     rekey_timeout = 0
     cookie = "".encode("UTF-8")
     cookie_timeout = 0
+    message_sent = 0
+    dst    = None
 
     def __init__(self, ip, prefix, key, port, ip_s):
         self.ip_s = ip_s

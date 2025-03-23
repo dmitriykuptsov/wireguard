@@ -163,7 +163,7 @@ def tun_loop():
 		if not entry:
 			logging.debug("Entry is missing....")
 			continue
-
+		entry.dst = dst
 		if entry.state != Statemachine.States.ESTABLISHED and entry.rekey_timeout <= time():
 			logging.debug("State is missing... Running key exchange....")
 			Srpub = entry.key
@@ -229,6 +229,7 @@ def tun_loop():
 			aead = crypto.aead.AEAD(entry.TSend, counter)
 			packet.data(aead.encrypt(data, crypto.constants.EMPTY))
 			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
+			entry.message_sent += 1
 			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
 
 def wg_loop():
@@ -413,11 +414,69 @@ tun_th_loop.start();
 
 def maintenance():
 	global R_reg_interval
+	global Spub
+	global Spriv
 	while True:
 		logging.debug("Periodic task")
 		if R_reg_interval > time():
 			R_reg_interval = time() + 120
 			R = os.urandom(32)
+		for entry in table:
+			if entry.message_sent <= Statemachine.RekeyAfterMessages:
+				continue
+			entry.message_sent = 0
+			logging.debug("State is missing... Running key exchange....")
+			Srpub = entry.key
+			h = crypto.digest.Digest()
+			Ci = h.digest(crypto.constants.CONSTRUCTION)
+			h = crypto.digest.Digest()
+			Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
+			logging.debug("(1) Hi HEX %s" % hexlify(Hi))
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + Srpub)
+			logging.debug("Peer's public key %s" % hexlify(Srpub))
+			Epriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.urandom(32))
+			Epub = Epriv.public_key()
+			logging.debug("Ci HEX %s" % hexlify(Ci))
+			logging.debug("Epub %s" % hexlify(Epub))
+			Ci = crypto.digest.KDF.kdf1(Ci, Epub)
+			logging.debug("Ci HEX %s" % hexlify(Ci))
+			packet = WireGuardInitiatorPacket()
+			ii = os.urandom(4)
+			packet.sender(ii)
+			packet.ephimeral(Epub)
+			logging.debug("Getting own EPUB %s" % hexlify(packet.ephimeral()))
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + packet.ephimeral())
+			logging.debug("Hi HEX %s" % hexlify(Hi))
+			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Epriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
+			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
+			packet.static(aead.encrypt(Spub, Hi))
+			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
+			logging.debug("The public key to be transmitted is .... %s" % (b64encode(aead.decrypt(packet.static(), Hi)[:-16]).decode("ASCII")))
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + packet.static())
+			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
+			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
+			packet.timestamp(aead.encrypt(utils.misc.Math.tai64n(), Hi))
+			logging.debug("TIMESTAMPT %s" % (hexlify(packet.timestamp())))
+			logging.debug("Hi %s" % (hexlify(Hi)))
+			h = crypto.digest.Digest()
+			Hi = h.digest(Hi + packet.timestamp())
+			entry.state = Statemachine.States.I_SENT
+			entry.rekey_timeout = time() + Statemachine.RekeyTimeout
+			entry.I = ii
+			entry.Ci = Ci
+			entry.Hi = Hi
+			entry.Epub = Epub
+			entry.Epriv = Epriv.private_bytes()
+			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
+			h = crypto.digest.Digest()
+			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
+			packet.mac1(m.digest(buffer))
+			logging.debug("Epub %s" % hexlify(packet.ephimeral()))
+			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
+			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
 		sleep(5)
 
 maintenance()
