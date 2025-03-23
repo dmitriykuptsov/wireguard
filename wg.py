@@ -214,6 +214,14 @@ def tun_loop():
 			h = crypto.digest.Digest()
 			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
 			packet.mac1(m.digest(buffer))
+			
+			if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
+				packet.mac2(bytes([0x0] * 16))
+			else:
+				m = crypto.digest.MACDigest(entry.cookie)
+				buffer = packet.buffer[:p.RESPONDER_MSG_BETA_OFFSET]
+				packet.mac2(m.digest(buffer))
+
 			logging.debug("Epub %s" % hexlify(packet.ephimeral()))
 			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
 			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
@@ -399,7 +407,7 @@ def wg_loop():
 			entry = table.get_by_id(ri)
 			if not entry:
 				continue
-			entry.cookie = packet
+			entry.cookie = packet.cookie()
 			entry.cookie_timeout = time()
 
 wg_th_loop = threading.Thread(target = wg_loop, args = (), daemon = True);
@@ -474,6 +482,14 @@ def maintenance():
 			h = crypto.digest.Digest()
 			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
 			packet.mac1(m.digest(buffer))
+			
+			if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
+				packet.mac2(bytes([0x0] * 16))
+			else:
+				m = crypto.digest.MACDigest(entry.cookie)
+				buffer = packet.buffer[:p.RESPONDER_MSG_BETA_OFFSET]
+				packet.mac2(m.digest(buffer))
+
 			logging.debug("Epub %s" % hexlify(packet.ephimeral()))
 			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
 			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
