@@ -229,6 +229,7 @@ def tun_loop():
 			packet = WireGuardDataPacket()
 			counter = utils.misc.Math.int_to_bytes(entry.NSend)
 			entry.NSend += 1
+			entry.rekey_after_timeout = time()
 			if (len(counter) % 8) > 0:
 				counter = bytes([0x0] * (8 - len(counter) % 8)) + counter
 			packet.counter(counter)
@@ -401,6 +402,8 @@ def wg_loop():
 			aead = crypto.aead.AEAD(entry.TRecv, packet.counter())
 			data = aead.decrypt(packet.data(), crypto.constants.EMPTY)
 			ipv4 = IPv4Packet(data)
+			entry.reject_after_timeout = time()
+			entry.NRecv = Nsend
 			tun.send(ipv4.get_buffer()[:ipv4.get_total_length() + 4])
 			#logging.debug(hexlify(ipv4.get_buffer()))
 		elif packet.type() == p.WIREGUARD_COOKIE_REPLY_TYPE:
@@ -432,7 +435,9 @@ def maintenance():
 			R_reg_interval = time() + 120
 			R = os.urandom(32)
 		for entry in table.table:
-			if entry.message_sent <= Statemachine.RekeyAfterMessages:
+			if time() - entry.rekey_after_timeout < Statemachine.RekeyAfterTime and \
+				time() - entry.reject_after_timeout < (Statemachine.RejectAfterTime - Statemachine.KeepaliveTimeout - Statemachine.RekeyTimeout) and \
+				entry.message_sent <= Statemachine.RekeyAfterMessages:
 				continue
 			if entry.cookie != crypto.constants.EMPTY and entry.cookie_timeout + Statemachine.RekeyTimeout > time():
 				continue

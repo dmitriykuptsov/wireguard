@@ -22,6 +22,8 @@ class CryptoRoutingEntry():
     state  = None
     timestamp = 0
     rekey_timeout = 0
+    rekey_after_timeout = 0
+    reject_after_timeout = 0
     cookie = "".encode("UTF-8")
     cookie_timeout = 0
     message_sent = 0
