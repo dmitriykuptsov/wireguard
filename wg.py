@@ -287,7 +287,7 @@ def wg_loop():
 				logging.debug("Timestamp is in the future...")
 				logging.debug(timestamp)
 				continue
-			entry.timestamp = utils.misc.Math.bytes_to_int(timestamp)
+			entry.timestamp = utils.misc.Math.bytes_to_int(timestamp[:8])
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.timestamp())
 			
