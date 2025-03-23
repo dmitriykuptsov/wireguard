@@ -283,8 +283,9 @@ def wg_loop():
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))			
 			timestamp = aead.decrypt(packet.timestamp(), Hi)
-			if entry.timestamp > utils.misc.Math.bytes_to_int(timestamp):
+			if entry.timestamp > utils.misc.Math.bytes_to_int(timestamp[:8]):
 				logging.debug("Timestamp is in the future...")
+				logging.debug(timestamp)
 				continue
 			entry.timestamp = utils.misc.Math.bytes_to_int(timestamp)
 			h = crypto.digest.Digest()
@@ -397,7 +398,7 @@ def wg_loop():
 			if not entry:
 				continue
 			Nsend = utils.misc.Math.bytes_to_int(packet.counter())
-			if not (Nsend > entry.NRecv - 10 and Nsend < entry.NRecv + 10):
+			if not (Nsend > entry.NRecv - Statemachine.SequenceWindow and Nsend < entry.NRecv + Statemachine.SequenceWindow):
 				logging.debug("Replay packet")
 				continue
 			aead = crypto.aead.AEAD(entry.TRecv, packet.counter())

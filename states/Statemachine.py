@@ -5,6 +5,7 @@ RejectAfterTime = 180 # seconds
 RekeyAttemptTime = 90 # seconds
 RekeyTimeout = 5 # seconds
 KeepaliveTimeout = 10 # seconds
+SequenceWindow = 10
 
 class States():
     UNASSOCIATED = 0
