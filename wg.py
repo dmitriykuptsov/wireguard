@@ -203,6 +203,7 @@ def tun_loop():
 			logging.debug("Hi %s" % (hexlify(Hi)))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.timestamp())
+
 			entry.state = Statemachine.States.I_SENT
 			entry.rekey_timeout = time() + Statemachine.RekeyTimeout
 			entry.I = ii
@@ -248,8 +249,10 @@ def wg_loop():
 		data, (ip, port) = wg_socket.recvfrom(MTU)
 		packet = WireGuardPacket(data)
 		if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
+			
 			packet = WireGuardInitiatorPacket(data)
 			mac1 = packet.mac1()
+
 			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
 			h = crypto.digest.Digest()
 			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
@@ -258,18 +261,6 @@ def wg_loop():
 				logging.debug("Invalid MAC 1 value.... dropping packet...")
 				continue
 
-			if under_load:
-				ii = packet.sender()
-				m = crypto.digest.MACDigest(R)
-				tau = m.digest(ip.encode("ASCII") + utils.misc.Math.int_to_bytes(int(port)))
-				packet = WireGuardCookiePacket()
-				packet.nonce(os.urandom(24))
-				packet.receiver(ii)
-				d = crypto.digest.Digest()
-				xaead = crypto.aead.xAEAD(d.digest(crypto.constants.LABEL_COOKIE + Spub), packet.nonce())
-				packet.cookie(xaead.encrypt(tau, mac1))
-				wg_socket.sendto(packet.buffer, (ip, int(port)))
-				continue
 			h = crypto.digest.Digest()
 			Ci = h.digest(crypto.constants.CONSTRUCTION)
 			h = crypto.digest.Digest()
@@ -288,6 +279,25 @@ def wg_loop():
 			if not entry:
 				logging.debug("Missing entry.....")
 				continue
+			if under_load:
+				ii = packet.sender()
+				m = crypto.digest.MACDigest(R)
+				tau = m.digest(ip.encode("ASCII") + utils.misc.Math.int_to_bytes(int(port)))
+				packet = WireGuardCookiePacket()
+				packet.nonce(os.urandom(24))
+				packet.receiver(ii)
+				d = crypto.digest.Digest()
+				xaead = crypto.aead.xAEAD(d.digest(crypto.constants.LABEL_COOKIE + Spub), packet.nonce())
+				packet.cookie(xaead.encrypt(tau, mac1))
+				wg_socket.sendto(packet.buffer, (ip, int(port)))
+				entry.cookie = packet.cookie()
+				continue
+			if packet.mac2() != bytes([0x0] * 16):
+				m = crypto.digest.MACDigest(entry.cookie)
+				buffer = packet.buffer[:p.INITIATOR_MSG_BETA_OFFSET]
+				if packet.mac2() != m.digest(buffer):
+					logging.debug("Invalid MAC 2... dropping packet")
+					continue
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.static())
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
