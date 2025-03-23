@@ -215,10 +215,6 @@ def tun_loop():
 			h = crypto.digest.Digest()
 			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Srpub))
 			packet.mac1(m.digest(buffer))
-
-			logging.debug("----- Srpub: " + hexlify(Srpub).decode("ASCII"))
-			logging.debug("----- MAC 1: " + hexlify(packet.mac1()).decode("ASCII"))
-			logging.debug("----- Buffer: " + hexlify(buffer).decode("ASCII"))
 			
 			if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
 				packet.mac2(bytes([0x0] * 16))
@@ -226,15 +222,8 @@ def tun_loop():
 				m = crypto.digest.MACDigest(entry.cookie)
 				buffer = packet.buffer[:p.INITIATOR_MSG_BETA_OFFSET]
 				packet.mac2(m.digest(buffer))
-
-			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
-			logging.debug("----- Buffer (after): " + hexlify(buffer).decode("ASCII"))
-
-			logging.debug("Epub %s" % hexlify(packet.ephimeral()))
+			
 			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
-
-			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
-			logging.debug("----- Buffer (after): " + hexlify(buffer).decode("ASCII"))
 
 			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
 		elif entry.state == Statemachine.States.ESTABLISHED:
@@ -264,10 +253,6 @@ def wg_loop():
 			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
 			h = crypto.digest.Digest()
 			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
-
-			logging.debug("----- Spub: " + hexlify(Spub).decode("ASCII"))
-			logging.debug("----- MAC 1: " + hexlify(packet.mac1()).decode("ASCII"))
-			logging.debug("----- Buffer: " + hexlify(buffer).decode("ASCII"))
 
 			if mac1 != m.digest(buffer):
 				logging.debug("Invalid MAC 1 value.... dropping packet...")
