@@ -429,7 +429,7 @@ def maintenance():
 		if R_reg_interval > time():
 			R_reg_interval = time() + 120
 			R = os.urandom(32)
-		for entry in table:
+		for entry in table.table:
 			if entry.message_sent <= Statemachine.RekeyAfterMessages:
 				continue
 			entry.message_sent = 0
