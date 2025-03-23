@@ -81,9 +81,9 @@ class WireGuardInitiatorPacket(WireGuardPacket):
         
     def mac2(self, m = None):
         if m:
-            self.buffer[MAC2_OFFSET:MAC2_LENGTH+MAC2_OFFSET] = m
+            self.buffer[I_MAC2_OFFSET:I_MAC2_LENGTH+I_MAC2_OFFSET] = m
         else:
-            return self.buffer[MAC2_OFFSET:MAC2_LENGTH+MAC2_OFFSET]
+            return self.buffer[I_MAC2_OFFSET:I_MAC2_LENGTH+I_MAC2_OFFSET]
 
 R_SENDER_LENGTH = 4
 R_SENDER_OFFSET = 4

@@ -210,20 +210,32 @@ def tun_loop():
 			entry.Hi = Hi
 			entry.Epub = Epub
 			entry.Epriv = Epriv.private_bytes()
+
 			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
 			h = crypto.digest.Digest()
-			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
+			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Srpub))
 			packet.mac1(m.digest(buffer))
+
+			logging.debug("----- Srpub: " + hexlify(Srpub).decode("ASCII"))
+			logging.debug("----- MAC 1: " + hexlify(packet.mac1()).decode("ASCII"))
+			logging.debug("----- Buffer: " + hexlify(buffer).decode("ASCII"))
 			
 			if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
 				packet.mac2(bytes([0x0] * 16))
 			else:
 				m = crypto.digest.MACDigest(entry.cookie)
-				buffer = packet.buffer[:p.RESPONDER_MSG_BETA_OFFSET]
+				buffer = packet.buffer[:p.INITIATOR_MSG_BETA_OFFSET]
 				packet.mac2(m.digest(buffer))
+
+			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
+			logging.debug("----- Buffer (after): " + hexlify(buffer).decode("ASCII"))
 
 			logging.debug("Epub %s" % hexlify(packet.ephimeral()))
 			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
+
+			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
+			logging.debug("----- Buffer (after): " + hexlify(buffer).decode("ASCII"))
+
 			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
 		elif entry.state == Statemachine.States.ESTABLISHED:
 			data = data + bytes([0x0] * (16 - len(data) % 16))
@@ -242,12 +254,25 @@ def tun_loop():
 			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
 
 def wg_loop():
+	global under_load
 	while True:
 		data, (ip, port) = wg_socket.recvfrom(MTU)
 		packet = WireGuardPacket(data)
 		if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
 			packet = WireGuardInitiatorPacket(data)
 			mac1 = packet.mac1()
+			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
+			h = crypto.digest.Digest()
+			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
+
+			logging.debug("----- Spub: " + hexlify(Spub).decode("ASCII"))
+			logging.debug("----- MAC 1: " + hexlify(packet.mac1()).decode("ASCII"))
+			logging.debug("----- Buffer: " + hexlify(buffer).decode("ASCII"))
+
+			if mac1 != m.digest(buffer):
+				logging.debug("Invalid MAC 1 value.... dropping packet...")
+				continue
+
 			if under_load:
 				ii = packet.sender()
 				m = crypto.digest.MACDigest(R)
@@ -285,7 +310,7 @@ def wg_loop():
 			timestamp = aead.decrypt(packet.timestamp(), Hi)
 			if entry.timestamp > utils.misc.Math.bytes_to_int(timestamp[:8]):
 				logging.debug("Timestamp is in the future...")
-				logging.debug(timestamp)
+				logging.debug(utils.misc.Math.bytes_to_int(timestamp[:8]))
 				continue
 			entry.timestamp = utils.misc.Math.bytes_to_int(timestamp[:8])
 			h = crypto.digest.Digest()
@@ -321,7 +346,7 @@ def wg_loop():
 
 			buffer = packet.buffer[:p.RESPONDER_MSG_ALPHA_OFFSET]
 			h = crypto.digest.Digest()
-			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
+			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Sipub))
 			packet.mac1(m.digest(buffer))
 
 			if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
@@ -352,6 +377,13 @@ def wg_loop():
 			packet = WireGuardResponderPacket(data)
 			ii = packet.sender()
 			ir = packet.receiver()
+
+			buffer = packet.buffer[:p.RESPONDER_MSG_ALPHA_OFFSET]
+			h = crypto.digest.Digest()
+			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
+			if packet.mac1() != m.digest(buffer):
+				logging.debug("Invalid MAC 1 value.... dropping packet...")
+				continue
 
 			entry = table.get_by_id(ir)
 
