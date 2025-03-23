@@ -276,6 +276,7 @@ def wg_loop():
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
 			Sipub = aead.decrypt(packet.static(), Hi)[:-16]
 			entry = table.get_by_key(Sipub)
+
 			if not entry:
 				logging.debug("Missing entry.....")
 				continue
@@ -291,8 +292,9 @@ def wg_loop():
 				packet.cookie(xaead.encrypt(tau, mac1))
 				wg_socket.sendto(packet.buffer, (ip, int(port)))
 				entry.cookie = packet.cookie()
+				entry.cookie_timeout = time()
 				continue
-			if packet.mac2() != bytes([0x0] * 16):
+			if packet.mac2() != bytes([0x0] * 16) and time() - entry.cookie_timeout < 120:
 				m = crypto.digest.MACDigest(entry.cookie)
 				buffer = packet.buffer[:p.INITIATOR_MSG_BETA_OFFSET]
 				if packet.mac2() != m.digest(buffer):
