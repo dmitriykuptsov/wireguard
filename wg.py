@@ -471,6 +471,7 @@ def maintenance():
 	global R_reg_interval
 	global Spub
 	global Spriv
+	global R
 	while True:
 		logging.debug("Periodic task")
 		if R_reg_interval < time():
