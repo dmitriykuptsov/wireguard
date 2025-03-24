@@ -292,6 +292,7 @@ def wg_loop():
 				packet.cookie(xaead.encrypt(tau, mac1))
 				wg_socket.sendto(packet.buffer, (ip, int(port)))
 				entry.cookie = packet.cookie()
+				entry.nonce = packet.nonce()
 				entry.cookie_timeout = time()
 				continue
 			if packet.mac2() != bytes([0x0] * 16) and time() - entry.cookie_timeout < 120:
@@ -299,6 +300,14 @@ def wg_loop():
 				buffer = packet.buffer[:p.INITIATOR_MSG_BETA_OFFSET]
 				if packet.mac2() != m.digest(buffer):
 					logging.debug("Invalid MAC 2... dropping packet")
+					continue
+				m = crypto.digest.MACDigest(R)
+				tau = m.digest(ip.encode("ASCII") + utils.misc.Math.int_to_bytes(int(port)))
+				d = crypto.digest.Digest()
+				xaead = crypto.aead.xAEAD(d.digest(crypto.constants.LABEL_COOKIE + Spub), entry.nonce)
+				cookie = xaead.decrypt(tau, mac1)
+				if cookie != entry.cookie:
+					logging.debug("Invalid cookie... dropping packet")
 					continue
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.static())
