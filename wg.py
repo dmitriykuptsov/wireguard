@@ -462,7 +462,11 @@ def wg_loop():
 				logging.debug("Replay packet")
 				continue
 			aead = crypto.aead.AEAD(entry.TRecv, packet.counter())
-			data = aead.decrypt(packet.data()[:-16], crypto.constants.EMPTY, packet.data()[-16:])
+			try:
+				data = aead.decrypt(packet.data()[:-16], crypto.constants.EMPTY, packet.data()[-16:])
+			except Exception as e:
+				logging.critical(e)
+				continue
 			ipv4 = IPv4Packet(data)
 			entry.reject_after_timeout = time()
 			entry.NRecv = Nsend
