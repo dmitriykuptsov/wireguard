@@ -250,12 +250,13 @@ def tun_loop():
 
 def wg_loop():
 	
+	global R
 	global under_load
 	global requests_per_second
 	global last_minute
 	global MEASUREMENT_THRESHOLD
 	global UNDER_LOAD_THRESHOLD
-	
+
 	while True:
 		data, (ip, port) = wg_socket.recvfrom(MTU)
 		packet = WireGuardPacket(data)
