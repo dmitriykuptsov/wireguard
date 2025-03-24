@@ -71,7 +71,7 @@ from binascii import hexlify
 
 # Configure logging to console and file
 logging.basicConfig(
-	level=logging.DEBUG,
+	level=logging.CRITICAL,
 	format="%(asctime)s [%(levelname)s] %(message)s",
 	handlers=[
 		logging.FileHandler("wg.log"),
@@ -137,7 +137,7 @@ def config_loop():
 
 wg_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 wg_socket.bind(('', int(config.get(Config.PORT))))
-MTU = 1000
+MTU = 1200
 
 tun = TunTunnel(pattern = "wg0");
 tun.set_ipv4(config.get(Config.LOCAL))
@@ -258,7 +258,7 @@ def wg_loop():
 	global UNDER_LOAD_THRESHOLD
 
 	while True:
-		data, (ip, port) = wg_socket.recvfrom(MTU)
+		data, (ip, port) = wg_socket.recvfrom(2*MTU)
 		packet = WireGuardPacket(data)
 		if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
 
@@ -454,7 +454,6 @@ def wg_loop():
 			packet = WireGuardDataPacket(data);
 			ri = packet.receiver()
 			entry = table.get_by_id(ri)
-			#logging.debug("RECEVIER ID: %s" % hexlify(ri))
 			if not entry:
 				continue
 			Nsend = utils.misc.Math.bytes_to_int(packet.counter())
