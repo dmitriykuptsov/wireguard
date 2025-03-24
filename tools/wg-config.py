@@ -9,7 +9,7 @@ commands = {
         "routes"
     ],
     "add": {
-        "route": ["<destination ip> <prefix> <public key base 64 encoded> <peer> <port>"]
+        "route": ["<destination ip> <mask> <base 64 encoded public key> <peer> <port>"]
     },
     "status": []
 }
