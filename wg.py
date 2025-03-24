@@ -554,7 +554,7 @@ def maintenance():
 			entry.Epriv = Epriv.private_bytes()
 			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
 			h = crypto.digest.Digest()
-			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
+			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Srpub))
 			packet.mac1(m.digest(buffer))
 			
 			if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
