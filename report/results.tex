@@ -17,7 +17,7 @@ $ python3 tools/genkey.py
 \end{verbatim}
 
 Copy the keys and save then in config/configuration.txt file. Also in this file modify the 
-peer address (address visible in the Internet or Local Area Network (LAN) address which will be used for 
+peer address (address visible on the Internet or Local Area Network (LAN) address which will be used for 
 port forwarding if you are behind the network address translator (NAT)), UDP port number, and local
 address of Tunneling interface (this will be used in Wireguard routing process). 
 
@@ -28,8 +28,8 @@ $ sudo python3 wg.py
 \end{verbatim}
 
 Bellow we assume that peer A has 10.1.1.5 as TUN interface address, while peer B has 10.1.1.6.
-We also assume that peer A's public key is $8aW8c...ZBkE=$, while peer B has $mRpAN...KHG4=$.
-Run the following commands on peer A:
+We also assume that peer A's public key is $8aW8c...ZBkE=$ (of course this is a shorten version), 
+while peer B has $mRpAN...KHG4=$. Run the following commands on peer A:
 
 \begin{verbatim}
 sudo ip route add 10.1.1.0/24 via 10.1.1.5
@@ -41,7 +41,7 @@ Then on peer B:
 sudo ip route add 10.1.1.0/24 via 10.1.1.6
 \end{verbatim}
 
-Add cryptographic routing entry, for that connect to WG daemon using nc utility as follows:
+Add cryptographic routing entry, for that connect to WG daemon using {\it   nc} utility as follows:
 
 \begin{small}
 \begin{verbatim}
@@ -54,7 +54,7 @@ and press Enter key:
 
 \begin{small}
 \begin{verbatim}
-add route 10.1.1.6 255.255.255.255 mRpANbnoDzXz8jczMe/3+aQW5YWqZhLiY+UZhUlKHG4= 14501 192.168.64.19
+add route 10.1.1.6 255.255.255.255 mRpAN...KHG4= 14501 192.168.64.19
 \end{verbatim}
 \end{small}
 
@@ -62,24 +62,27 @@ Repeat the same procedure on the other side - peer B:
 
 \begin{small}
 \begin{verbatim}
-add route 10.1.1.0 255.255.255.0 8aW8cY51u1DlEoOrco9du8zv8lt/WhC7dMEuSZoZBkE= 14500 192.168.64.16
+add route 10.1.1.0 255.255.255.0 8aW8c...ZBkE= 14500 192.168.64.16
 \end{verbatim}
 \end{small}
 
 Now go to peer A and test the connectivity between the nodes:
 \begin{verbatim}
-$ ping 10.1.1.6
+dmitriy@initiator:~$ ping 10.1.1.6
+PING 10.1.1.6 (10.1.1.6) 56(84) bytes of data.
+64 bytes from 10.1.1.6: icmp_seq=1 ttl=64 time=5.77 ms
+64 bytes from 10.1.1.6: icmp_seq=2 ttl=64 time=5.16 ms
 \end{verbatim}
 
 Once the secure tunnel is established you should see the ICMP packets flowing back and forth.
 
-To understand the performance of our proof of a concept implementation using Python languuage
-we have performed the series of throughput tests (with help of Iperf tool). The results of the 
-experiment is show in Figure~\ref{fig:throughput}. We have reached maximum of 70Mb/s between 
-a pair of virtual machines hosted on MacBook M1 laptop.
+To understand the performance of our proof-of-concept implementation using Python language we 
+have performed a series of throughput tests (with the help of the Iperf tool). All in all, 
+we have reached the maximum of 70Mb/s between a pair of virtual machines hosted on a MacBook 
+M1 laptop.
 
-\begin{figure}[!hbt]\centering
-  \includegraphics[width=0.45\textwidth]{graphics/throughput.pdf}
-  \caption{Distribution of throughput}
-  \label{fig:throughput}
-\end{figure}
+%\begin{figure}[!hbt]\centering
+%  \includegraphics[width=0.45\textwidth]{graphics/throughput.pdf}
+%  \caption{Distribution of throughput}
+%  \label{fig:throughput}
+%\end{figure}

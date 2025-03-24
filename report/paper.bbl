@@ -1,0 +1,12 @@
+\begin{thebibliography}{1}
+
+\bibitem{wireguard:poci}
+{WireGuard: Python implementation}.
+\newblock https://github.com/dmitriykuptsov/wireguard, 2025.
+
+\bibitem{wireguard}
+J.~A. Donenfeld.
+\newblock {\em {WireGuard: Next Generation Kernel Network Tunnel}}.
+\newblock 2020.
+
+\end{thebibliography}

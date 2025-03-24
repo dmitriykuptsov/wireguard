@@ -1,48 +1,49 @@
 This is BibTeX, Version 0.99d (TeX Live 2021)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: paper.aux
-I found no \citation commands---while reading file paper.aux
-I found no \bibdata command---while reading file paper.aux
-I found no \bibstyle command---while reading file paper.aux
-You've used 0 entries,
-            0 wiz_defined-function locations,
-            83 strings with 484 characters,
-and the built_in function-call counts, 0 in all, are:
-= -- 0
-> -- 0
+The style file: abbrv.bst
+Database file #1: mybib.bib
+Warning--to sort, need author or key in wireguard:poci
+Warning--empty publisher in wireguard
+You've used 2 entries,
+            2118 wiz_defined-function locations,
+            505 strings with 3880 characters,
+and the built_in function-call counts, 399 in all, are:
+= -- 34
+> -- 8
 < -- 0
-+ -- 0
-- -- 0
-* -- 0
-:= -- 0
-add.period$ -- 0
-call.type$ -- 0
-change.case$ -- 0
++ -- 4
+- -- 2
+* -- 18
+:= -- 64
+add.period$ -- 5
+call.type$ -- 2
+change.case$ -- 6
 chr.to.int$ -- 0
-cite$ -- 0
-duplicate$ -- 0
-empty$ -- 0
-format.name$ -- 0
-if$ -- 0
+cite$ -- 4
+duplicate$ -- 19
+empty$ -- 46
+format.name$ -- 2
+if$ -- 87
 int.to.chr$ -- 0
-int.to.str$ -- 0
-missing$ -- 0
-newline$ -- 0
-num.names$ -- 0
-pop$ -- 0
-preamble$ -- 0
-purify$ -- 0
+int.to.str$ -- 2
+missing$ -- 2
+newline$ -- 12
+num.names$ -- 2
+pop$ -- 17
+preamble$ -- 1
+purify$ -- 5
 quote$ -- 0
-skip$ -- 0
+skip$ -- 13
 stack$ -- 0
-substring$ -- 0
-swap$ -- 0
+substring$ -- 10
+swap$ -- 2
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 0
-warning$ -- 0
-while$ -- 0
-width$ -- 0
-write$ -- 0
-(There were 3 error messages)
+type$ -- 6
+warning$ -- 2
+while$ -- 2
+width$ -- 3
+write$ -- 19
+(There were 2 warnings)
