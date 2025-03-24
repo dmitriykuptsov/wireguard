@@ -33,20 +33,11 @@ class AEAD():
         o = cipher.encrypt_and_digest(data)
         return o[0] + o[1]
     
-    def encrypt_and_digest(self, data, auth):
-        cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.counter)
-        cipher.update(auth)
-        return cipher.encrypt_and_digest(data)
-    
-    def decrypt(self, data, auth):
-        cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.counter)
-        cipher.update(auth)
-        return cipher.decrypt(data)
-    
-    def decrypt_and_verify(self, data, auth, tag):
+    def decrypt(self, data, auth, tag):
         cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.counter)
         cipher.update(auth)
         return cipher.decrypt_and_verify(data, tag)
+
     
 
 class xAEAD():
@@ -59,23 +50,13 @@ class xAEAD():
         self.nonce = nonce
 
     def encrypt(self, data, auth):
-        cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.nonce)
+        cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.counter)
         cipher.update(auth)
         o = cipher.encrypt_and_digest(data)
         return o[0] + o[1]
     
-    def encrypt_and_digest(self, data, auth):
-        cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.nonce)
-        cipher.update(auth)
-        return cipher.encrypt_and_digest(data)
-    
-    def decrypt(self, data, auth):
-        cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.nonce)
-        cipher.update(auth)
-        return cipher.decrypt(data)
-    
-    def decrypt_and_verify(self, data, auth, tag):
-        cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.nonce)
+    def decrypt(self, data, auth, tag):
+        cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.counter)
         cipher.update(auth)
         return cipher.decrypt_and_verify(data, tag)
         

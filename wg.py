@@ -198,7 +198,7 @@ def tun_loop():
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
 			packet.static(aead.encrypt(Spub, Hi))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
-			logging.debug("The public key to be transmitted is .... %s" % (b64encode(aead.decrypt(packet.static(), Hi)[:-16]).decode("ASCII")))
+			logging.debug("The public key to be transmitted is .... %s" % (b64encode(aead.decrypt(packet.static()[:-16], Hi, packet.static()[-16:])).decode("ASCII")))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.static())
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
@@ -292,7 +292,7 @@ def wg_loop():
 			Hi = h.digest(Hi + Epub)
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
-			Sipub = aead.decrypt(packet.static(), Hi)[:-16]
+			Sipub = aead.decrypt(packet.static()[:-16], Hi, packet.static()[-16:])
 			entry = table.get_by_key(Sipub)
 
 			if not entry:
@@ -323,7 +323,7 @@ def wg_loop():
 				tau = m.digest(ip.encode("ASCII") + utils.misc.Math.int_to_bytes(int(port)))
 				d = crypto.digest.Digest()
 				xaead = crypto.aead.xAEAD(d.digest(crypto.constants.LABEL_COOKIE + Spub), entry.nonce)
-				cookie = xaead.decrypt(tau, mac1)
+				cookie = xaead.encrypt(tau, mac1)
 				if cookie != entry.cookie:
 					logging.debug("Invalid cookie... dropping packet")
 					continue
@@ -333,7 +333,7 @@ def wg_loop():
 			Hi = h.digest(Hi + packet.static())
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))			
-			timestamp = aead.decrypt(packet.timestamp(), Hi)
+			timestamp = aead.decrypt(packet.timestamp()[:-16], Hi, packet.timestamp()[-16:])
 			if entry.timestamp > utils.misc.Math.bytes_to_int(timestamp[:8]):
 				logging.debug("Timestamp is in the future...")
 				logging.debug(utils.misc.Math.bytes_to_int(timestamp[:8]))
@@ -460,7 +460,7 @@ def wg_loop():
 				logging.debug("Replay packet")
 				continue
 			aead = crypto.aead.AEAD(entry.TRecv, packet.counter())
-			data = aead.decrypt(packet.data(), crypto.constants.EMPTY)
+			data = aead.decrypt(packet.data()[:-16], crypto.constants.EMPTY, packet.data()[-16:])
 			ipv4 = IPv4Packet(data)
 			entry.reject_after_timeout = time()
 			entry.NRecv = Nsend
@@ -533,7 +533,7 @@ def maintenance():
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
 			packet.static(aead.encrypt(Spub, Hi))
 			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
-			logging.debug("The public key to be transmitted is .... %s" % (b64encode(aead.decrypt(packet.static(), Hi)[:-16]).decode("ASCII")))
+			logging.debug("The public key to be transmitted is .... %s" % (b64encode(aead.decrypt(packet.static()[:-16], Hi, packet.static()[-16:])).decode("ASCII")))
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.static())
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
