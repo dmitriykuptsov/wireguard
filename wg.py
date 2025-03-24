@@ -309,6 +309,8 @@ def wg_loop():
 				if cookie != entry.cookie:
 					logging.debug("Invalid cookie... dropping packet")
 					continue
+				entry.cookie = crypto.constants.EMPTY
+				entry.nonce = crypto.constants.EMPTY
 			h = crypto.digest.Digest()
 			Hi = h.digest(Hi + packet.static())
 			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
