@@ -295,7 +295,7 @@ def wg_loop():
 				entry.nonce = packet.nonce()
 				entry.cookie_timeout = time()
 				continue
-			if packet.mac2() != bytes([0x0] * 16) and time() - entry.cookie_timeout < 120:
+			if time() - entry.cookie_timeout < 120:
 				m = crypto.digest.MACDigest(entry.cookie)
 				buffer = packet.buffer[:p.INITIATOR_MSG_BETA_OFFSET]
 				if packet.mac2() != m.digest(buffer):
