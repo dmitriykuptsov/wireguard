@@ -30,7 +30,8 @@ class AEAD():
     def encrypt(self, data, auth):
         cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.counter)
         cipher.update(auth)
-        return cipher.encrypt(data)
+        o = cipher.encrypt_and_digest(data)
+        return o[0] + o[1]
     
     def encrypt_and_digest(self, data, auth):
         cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.counter)
@@ -60,7 +61,8 @@ class xAEAD():
     def encrypt(self, data, auth):
         cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.nonce)
         cipher.update(auth)
-        return cipher.encrypt(data)
+        o = cipher.encrypt_and_digest(data)
+        return o[0] + o[1]
     
     def encrypt_and_digest(self, data, auth):
         cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.nonce)
