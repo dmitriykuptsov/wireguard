@@ -462,7 +462,7 @@ def maintenance():
 	global Spriv
 	while True:
 		logging.debug("Periodic task")
-		if R_reg_interval > time():
+		if R_reg_interval < time():
 			R_reg_interval = time() + 120
 			R = os.urandom(32)
 		for entry in table.table:
