@@ -265,6 +265,8 @@ def wg_loop():
 			if time() - last_minute >= MEASUREMENT_THRESHOLD:
 				if requests_per_second / MEASUREMENT_THRESHOLD > UNDER_LOAD_THRESHOLD:
 					under_load = True
+				else:
+					under_load = False
 				last_minute = time()
 				requests_per_second = 0
 
