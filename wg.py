@@ -152,6 +152,11 @@ R_reg_interval = time()
 
 under_load = False
 
+UNDER_LOAD_THRESHOLD = 5
+MEASUREMENT_THRESHOLD = 120 # 2 minutes
+requests_per_second = 0
+last_minute = time()
+
 def tun_loop():
 	while True:
 		data = tun.recv(MTU);
@@ -244,12 +249,24 @@ def tun_loop():
 			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
 
 def wg_loop():
+	
 	global under_load
+	global requests_per_second
+	global last_minute
+	global MEASUREMENT_THRESHOLD
+	global UNDER_LOAD_THRESHOLD
+	
 	while True:
 		data, (ip, port) = wg_socket.recvfrom(MTU)
 		packet = WireGuardPacket(data)
 		if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
-			
+
+			if time() - last_minute >= MEASUREMENT_THRESHOLD:
+				if requests_per_second / MEASUREMENT_THRESHOLD > UNDER_LOAD_THRESHOLD:
+					under_load = True
+				last_minute = time()
+				requests_per_second = 0
+
 			packet = WireGuardInitiatorPacket(data)
 			mac1 = packet.mac1()
 
