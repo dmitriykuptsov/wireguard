@@ -1,3 +1,15 @@
 \section{Background}
 \label{section:background}
 
+Wireguard~\cite{wireguard} is a novel security protocol which allows for building secure Virtual Private Networks
+on top of layer 3. Wireguard uses the notion of a cryptorouting in which the forwarding of a packet 
+occures based on public key of a peer. Wireguard is 1-RTT protocol, meaning that it requires 
+(in the best case) single round-trip to negotiate the keys for securing the data plane traffic.
+In addition Wireguard introduces the concept of cryptographic cookies which can be used 
+during the heavy load time instants to protect the server from denial-of-service attacks.
+Finally, Wireguard uses latest cryptographic algorithms such as Authenticated Encryption
+with Authentication Data (AEAD) ChaCha20 algorithm and compact $256$ bit elliptic curve 
+X25519.
+
+In what follows we will describe the setup of Wireguard between two nodes deploed on 
+virutual machines.
