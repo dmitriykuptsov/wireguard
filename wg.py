@@ -423,6 +423,8 @@ def wg_loop():
 				if not entry:
 					continue
 
+				entry.is_initiator = True
+
 				Cr = entry.Ci
 				Hr = entry.Hi
 
@@ -482,6 +484,7 @@ def wg_loop():
 				entry = table.get_by_id(ri)
 				if not entry:
 					continue
+				entry.is_initiator = True
 				entry.cookie = packet.cookie()
 				entry.cookie_timeout = time()
 		except Exception as e:
