@@ -367,7 +367,7 @@ def wg_loop():
 				Hr = h.digest(Hr + packet.ephimeral())
 				Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
 				Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
-				Q = bytes([0x0] * 4)
+				Q = bytes([0x0] * 32)
 				(Cr, tau, k) = crypto.digest.KDF.kdf3(Cr, Q)
 				h = crypto.digest.Digest()
 				Hr = h.digest(Hr + tau)
@@ -396,7 +396,7 @@ def wg_loop():
 
 				entry.ip_s = ip
 				entry.port = port
-				
+
 				entry.state = Statemachine.States.ESTABLISHED
 				entry.rekey_timeout = time() + Statemachine.RekeyTimeout
 				entry.R = ii
@@ -438,7 +438,7 @@ def wg_loop():
 				Eipriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(entry.Epriv)
 				Cr = crypto.digest.KDF.kdf1(Cr, Eipriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
 				Cr = crypto.digest.KDF.kdf1(Cr, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
-				Q = bytes([0x0] * 4)
+				Q = bytes([0x0] * 32)
 				(Cr, tau, k) = crypto.digest.KDF.kdf3(Cr, Q)
 				h = crypto.digest.Digest()
 				Hr = h.digest(Hr + tau)
