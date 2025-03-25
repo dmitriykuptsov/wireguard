@@ -1,3 +1,4 @@
+# Should started from witin the deployment directory
 echo "Updating the system"
 sudo apt-get update
 echo "Installing libraries"
