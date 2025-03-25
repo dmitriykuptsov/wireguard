@@ -390,9 +390,13 @@ def wg_loop():
 
 				(Trecv, Tsend) = crypto.digest.KDF.kdf2(Cr, crypto.constants.EMPTY)
 
-				logging.debug("Sent reply to initiator packet.... to %s %s" % (entry.ip_s, str(entry.port)))
+				logging.debug("Sent reply to initiator packet.... to %s %s" % (ip, str(port)))
 
-				wg_socket.sendto(packet.buffer, (entry.ip_s, int(entry.port)))
+				wg_socket.sendto(packet.buffer, (ip, port))
+
+				entry.ip_s = ip
+				entry.port = port
+				
 				entry.state = Statemachine.States.ESTABLISHED
 				entry.rekey_timeout = time() + Statemachine.RekeyTimeout
 				entry.R = ii
