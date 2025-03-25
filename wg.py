@@ -281,6 +281,8 @@ def wg_loop():
 				logging.debug("Invalid MAC 1 value.... dropping packet...")
 				continue
 
+			entry.is_initiator = False
+
 			h = crypto.digest.Digest()
 			Ci = h.digest(crypto.constants.CONSTRUCTION)
 			h = crypto.digest.Digest()
