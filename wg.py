@@ -167,86 +167,88 @@ def tun_loop():
 		if not entry:
 			logging.debug("Entry is missing....")
 			continue
-		entry.dst = dst
-		if entry.state != Statemachine.States.ESTABLISHED and entry.rekey_timeout <= time():
-			logging.debug("State is missing... Running key exchange....")
-			entry.is_initiator = True
-			Srpub = entry.key
-			h = crypto.digest.Digest()
-			Ci = h.digest(crypto.constants.CONSTRUCTION)
-			h = crypto.digest.Digest()
-			Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
-			logging.debug("(1) Hi HEX %s" % hexlify(Hi))
-			h = crypto.digest.Digest()
-			Hi = h.digest(Hi + Srpub)
-			logging.debug("Peer's public key %s" % hexlify(Srpub))
-			Epriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.urandom(32))
-			Epub = Epriv.public_key()
-			logging.debug("Ci HEX %s" % hexlify(Ci))
-			logging.debug("Epub %s" % hexlify(Epub))
-			Ci = crypto.digest.KDF.kdf1(Ci, Epub)
-			logging.debug("Ci HEX %s" % hexlify(Ci))
-			packet = WireGuardInitiatorPacket()
-			ii = os.urandom(4)
-			packet.sender(ii)
-			packet.ephimeral(Epub)
-			logging.debug("Getting own EPUB %s" % hexlify(packet.ephimeral()))
-			h = crypto.digest.Digest()
-			Hi = h.digest(Hi + packet.ephimeral())
-			logging.debug("Hi HEX %s" % hexlify(Hi))
-			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Epriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
-			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
-			packet.static(aead.encrypt(Spub, Hi))
-			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
-			logging.debug("The public key to be transmitted is .... %s" % (b64encode(aead.decrypt(packet.static()[:-16], Hi, packet.static()[-16:])).decode("ASCII")))
-			h = crypto.digest.Digest()
-			Hi = h.digest(Hi + packet.static())
-			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
-			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
-			packet.timestamp(aead.encrypt(utils.misc.Math.tai64n(), Hi))
-			logging.debug("TIMESTAMPT %s" % (hexlify(packet.timestamp())))
-			logging.debug("Hi %s" % (hexlify(Hi)))
-			h = crypto.digest.Digest()
-			Hi = h.digest(Hi + packet.timestamp())
+		try:
+			if entry.state != Statemachine.States.ESTABLISHED and entry.rekey_timeout <= time():
+				logging.debug("State is missing... Running key exchange....")
+				entry.is_initiator = True
+				Srpub = entry.key
+				h = crypto.digest.Digest()
+				Ci = h.digest(crypto.constants.CONSTRUCTION)
+				h = crypto.digest.Digest()
+				Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
+				logging.debug("(1) Hi HEX %s" % hexlify(Hi))
+				h = crypto.digest.Digest()
+				Hi = h.digest(Hi + Srpub)
+				logging.debug("Peer's public key %s" % hexlify(Srpub))
+				Epriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.urandom(32))
+				Epub = Epriv.public_key()
+				logging.debug("Ci HEX %s" % hexlify(Ci))
+				logging.debug("Epub %s" % hexlify(Epub))
+				Ci = crypto.digest.KDF.kdf1(Ci, Epub)
+				logging.debug("Ci HEX %s" % hexlify(Ci))
+				packet = WireGuardInitiatorPacket()
+				ii = os.urandom(4)
+				packet.sender(ii)
+				packet.ephimeral(Epub)
+				logging.debug("Getting own EPUB %s" % hexlify(packet.ephimeral()))
+				h = crypto.digest.Digest()
+				Hi = h.digest(Hi + packet.ephimeral())
+				logging.debug("Hi HEX %s" % hexlify(Hi))
+				(Ci, k) = crypto.digest.KDF.kdf2(Ci, Epriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
+				aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
+				packet.static(aead.encrypt(Spub, Hi))
+				aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
+				logging.debug("The public key to be transmitted is .... %s" % (b64encode(aead.decrypt(packet.static()[:-16], Hi, packet.static()[-16:])).decode("ASCII")))
+				h = crypto.digest.Digest()
+				Hi = h.digest(Hi + packet.static())
+				(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Srpub)))
+				aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
+				packet.timestamp(aead.encrypt(utils.misc.Math.tai64n(), Hi))
+				logging.debug("TIMESTAMPT %s" % (hexlify(packet.timestamp())))
+				logging.debug("Hi %s" % (hexlify(Hi)))
+				h = crypto.digest.Digest()
+				Hi = h.digest(Hi + packet.timestamp())
 
-			entry.state = Statemachine.States.I_SENT
-			entry.rekey_timeout = time() + Statemachine.RekeyTimeout
-			entry.I = ii
-			entry.Ci = Ci
-			entry.Hi = Hi
-			entry.Epub = Epub
-			entry.Epriv = Epriv.private_bytes()
+				entry.state = Statemachine.States.I_SENT
+				entry.rekey_timeout = time() + Statemachine.RekeyTimeout
+				entry.I = ii
+				entry.Ci = Ci
+				entry.Hi = Hi
+				entry.Epub = Epub
+				entry.Epriv = Epriv.private_bytes()
 
-			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
-			h = crypto.digest.Digest()
-			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Srpub))
-			packet.mac1(m.digest(buffer))
-			
-			if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
-				packet.mac2(bytes([0x0] * 16))
-			else:
-				m = crypto.digest.MACDigest(entry.cookie)
-				buffer = packet.buffer[:p.INITIATOR_MSG_BETA_OFFSET]
-				packet.mac2(m.digest(buffer))
-			
-			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
+				buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
+				h = crypto.digest.Digest()
+				m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Srpub))
+				packet.mac1(m.digest(buffer))
+				
+				if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
+					packet.mac2(bytes([0x0] * 16))
+				else:
+					m = crypto.digest.MACDigest(entry.cookie)
+					buffer = packet.buffer[:p.INITIATOR_MSG_BETA_OFFSET]
+					packet.mac2(m.digest(buffer))
+				
+				wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
 
-			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
-		elif entry.state == Statemachine.States.ESTABLISHED:
-			data = data + bytes([0x0] * (16 - len(data) % 16))
-			packet = WireGuardDataPacket()
-			counter = utils.misc.Math.int_to_bytes(entry.NSend)
-			entry.NSend += 1
-			entry.rekey_after_timeout = time()
-			if (len(counter) % 8) > 0:
-				counter = bytes([0x0] * (8 - len(counter) % 8)) + counter
-			packet.counter(counter)
-			packet.receiver(entry.R)
-			aead = crypto.aead.AEAD(entry.TSend, counter)
-			packet.data(aead.encrypt(data, crypto.constants.EMPTY))
-			wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
-			entry.message_sent += 1
-			logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
+				logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
+			elif entry.state == Statemachine.States.ESTABLISHED:
+				data = data + bytes([0x0] * (16 - len(data) % 16))
+				packet = WireGuardDataPacket()
+				counter = utils.misc.Math.int_to_bytes(entry.NSend)
+				entry.NSend += 1
+				entry.rekey_after_timeout = time()
+				if (len(counter) % 8) > 0:
+					counter = bytes([0x0] * (8 - len(counter) % 8)) + counter
+				packet.counter(counter)
+				packet.receiver(entry.R)
+				aead = crypto.aead.AEAD(entry.TSend, counter)
+				packet.data(aead.encrypt(data, crypto.constants.EMPTY))
+				wg_socket.sendto(packet.buffer, (entry.ip_s, entry.port))
+				entry.message_sent += 1
+				logging.debug("Sent packet.... to %s %s" % (entry.ip_s, str(entry.port)))
+		except Exception as e:
+			logging.critical(e)
 
 def wg_loop():
 	
@@ -260,227 +262,230 @@ def wg_loop():
 	while True:
 		data, (ip, port) = wg_socket.recvfrom(2*MTU)
 		packet = WireGuardPacket(data)
-		if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
-			requests_per_second += 1
-			if time() - last_minute >= MEASUREMENT_THRESHOLD:
-				if requests_per_second / MEASUREMENT_THRESHOLD > UNDER_LOAD_THRESHOLD:
-					under_load = True
+		try:
+			if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
+				requests_per_second += 1
+				if time() - last_minute >= MEASUREMENT_THRESHOLD:
+					if requests_per_second / MEASUREMENT_THRESHOLD > UNDER_LOAD_THRESHOLD:
+						under_load = True
+					else:
+						under_load = False
+					last_minute = time()
+					requests_per_second = 0
+
+				packet = WireGuardInitiatorPacket(data)
+				mac1 = packet.mac1()
+
+				buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
+				h = crypto.digest.Digest()
+				m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
+
+				if mac1 != m.digest(buffer):
+					logging.debug("Invalid MAC 1 value.... dropping packet...")
+					continue
+
+				entry.is_initiator = False
+
+				h = crypto.digest.Digest()
+				Ci = h.digest(crypto.constants.CONSTRUCTION)
+				h = crypto.digest.Digest()
+				Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
+				h = crypto.digest.Digest()
+				Hi = h.digest(Hi + Spub)
+				Epub = packet.ephimeral()
+				Ci = crypto.digest.KDF.kdf1(Ci, Epub)
+				ri = packet.sender()
+				h = crypto.digest.Digest()
+				Hi = h.digest(Hi + Epub)
+				(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
+				aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
+				Sipub = aead.decrypt(packet.static()[:-16], Hi, packet.static()[-16:])
+				entry = table.get_by_key(Sipub)
+
+				if not entry:
+					logging.debug("Missing entry.....")
+					continue
+				if under_load:
+					ii = packet.sender()
+					m = crypto.digest.MACDigest(R)
+					tau = m.digest(ip.encode("ASCII") + utils.misc.Math.int_to_bytes(int(port)))
+					packet = WireGuardCookiePacket()
+					packet.nonce(os.urandom(24))
+					packet.receiver(ii)
+					d = crypto.digest.Digest()
+					xaead = crypto.aead.xAEAD(d.digest(crypto.constants.LABEL_COOKIE + Spub), packet.nonce())
+					packet.cookie(xaead.encrypt(tau, mac1))
+					wg_socket.sendto(packet.buffer, (ip, int(port)))
+					entry.cookie = packet.cookie()
+					entry.nonce = packet.nonce()
+					entry.cookie_timeout = time()
+					continue
+				if time() - entry.cookie_timeout < 120:
+					m = crypto.digest.MACDigest(entry.cookie)
+					buffer = packet.buffer[:p.INITIATOR_MSG_BETA_OFFSET]
+					if packet.mac2() != m.digest(buffer):
+						logging.debug("Invalid MAC 2... dropping packet")
+						continue
+					m = crypto.digest.MACDigest(R)
+					tau = m.digest(ip.encode("ASCII") + utils.misc.Math.int_to_bytes(int(port)))
+					d = crypto.digest.Digest()
+					xaead = crypto.aead.xAEAD(d.digest(crypto.constants.LABEL_COOKIE + Spub), entry.nonce)
+					cookie = xaead.encrypt(tau, mac1)
+					if cookie != entry.cookie:
+						logging.debug("Invalid cookie... dropping packet")
+						continue
+					entry.cookie = crypto.constants.EMPTY
+					entry.nonce = crypto.constants.EMPTY
+				h = crypto.digest.Digest()
+				Hi = h.digest(Hi + packet.static())
+				(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
+				aead = crypto.aead.AEAD(k, bytes([0x0] * 8))			
+				timestamp = aead.decrypt(packet.timestamp()[:-16], Hi, packet.timestamp()[-16:])
+				if entry.timestamp > utils.misc.Math.bytes_to_int(timestamp[:8]):
+					logging.debug("Timestamp is in the future...")
+					logging.debug(utils.misc.Math.bytes_to_int(timestamp[:8]))
+					continue
+				entry.timestamp = utils.misc.Math.bytes_to_int(timestamp[:8])
+				h = crypto.digest.Digest()
+				Hi = h.digest(Hi + packet.timestamp())
+				
+				# Create response here...
+				Cr = Ci
+				Hr = Hi
+
+				Erpriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.urandom(32))
+				Erpub = Erpriv.public_key()
+				entry.Epub = Erpub
+				entry.Epriv = Erpriv
+
+				Cr = crypto.digest.KDF.kdf1(Cr, Erpub)
+				packet = WireGuardResponderPacket()
+				packet.ephimeral(Erpub)
+				ii = os.urandom(4)
+				packet.sender(ii)
+				packet.receiver(ri)
+				h = crypto.digest.Digest()
+				Hr = h.digest(Hr + packet.ephimeral())
+				Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
+				Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
+				Q = bytes([0x0] * 4)
+				(Cr, tau, k) = crypto.digest.KDF.kdf3(Cr, Q)
+				h = crypto.digest.Digest()
+				Hr = h.digest(Hr + tau)
+				aead = crypto.aead.AEAD(k, bytes([0x0] * 8))			
+				packet.empty(aead.encrypt(crypto.constants.EMPTY, Hr))
+				h = crypto.digest.Digest()
+				Hr = h.digest(Hr + packet.empty())
+
+				buffer = packet.buffer[:p.RESPONDER_MSG_ALPHA_OFFSET]
+				h = crypto.digest.Digest()
+				m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Sipub))
+				packet.mac1(m.digest(buffer))
+
+				if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
+					packet.mac2(bytes([0x0] * 16))
 				else:
-					under_load = False
-				last_minute = time()
-				requests_per_second = 0
+					m = crypto.digest.MACDigest(entry.cookie)
+					buffer = packet.buffer[:p.RESPONDER_MSG_BETA_OFFSET]
+					packet.mac2(m.digest(buffer))
 
-			packet = WireGuardInitiatorPacket(data)
-			mac1 = packet.mac1()
+				(Trecv, Tsend) = crypto.digest.KDF.kdf2(Cr, crypto.constants.EMPTY)
 
-			buffer = packet.buffer[:p.INITIATOR_MSG_ALPHA_OFFSET]
-			h = crypto.digest.Digest()
-			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
+				logging.debug("Sent reply to initiator packet.... to %s %s" % (entry.ip_s, str(entry.port)))
 
-			if mac1 != m.digest(buffer):
-				logging.debug("Invalid MAC 1 value.... dropping packet...")
-				continue
+				wg_socket.sendto(packet.buffer, (entry.ip_s, int(entry.port)))
+				entry.state = Statemachine.States.ESTABLISHED
+				entry.rekey_timeout = time() + Statemachine.RekeyTimeout
+				entry.R = ii
+				entry.I = ri
+				entry.TSend = Tsend
+				entry.TRecv = Trecv
+				entry.NSend = 0
+				entry.NRecv = 0
 
-			entry.is_initiator = False
+				print("Tsend %s" % (hexlify(Tsend)))
+				print("Trecv %s" % (hexlify(Trecv)))
 
-			h = crypto.digest.Digest()
-			Ci = h.digest(crypto.constants.CONSTRUCTION)
-			h = crypto.digest.Digest()
-			Hi = h.digest(Ci + crypto.constants.IDENTIFIER)
-			h = crypto.digest.Digest()
-			Hi = h.digest(Hi + Spub)
-			Epub = packet.ephimeral()
-			Ci = crypto.digest.KDF.kdf1(Ci, Epub)
-			ri = packet.sender()
-			h = crypto.digest.Digest()
-			Hi = h.digest(Hi + Epub)
-			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
-			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))
-			Sipub = aead.decrypt(packet.static()[:-16], Hi, packet.static()[-16:])
-			entry = table.get_by_key(Sipub)
-
-			if not entry:
-				logging.debug("Missing entry.....")
-				continue
-			if under_load:
+			elif packet.type() == p.WIREGUARD_RESPONDER_TYPE:
+				packet = WireGuardResponderPacket(data)
 				ii = packet.sender()
-				m = crypto.digest.MACDigest(R)
-				tau = m.digest(ip.encode("ASCII") + utils.misc.Math.int_to_bytes(int(port)))
-				packet = WireGuardCookiePacket()
-				packet.nonce(os.urandom(24))
-				packet.receiver(ii)
-				d = crypto.digest.Digest()
-				xaead = crypto.aead.xAEAD(d.digest(crypto.constants.LABEL_COOKIE + Spub), packet.nonce())
-				packet.cookie(xaead.encrypt(tau, mac1))
-				wg_socket.sendto(packet.buffer, (ip, int(port)))
+				ir = packet.receiver()
+
+				buffer = packet.buffer[:p.RESPONDER_MSG_ALPHA_OFFSET]
+				h = crypto.digest.Digest()
+				m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
+				if packet.mac1() != m.digest(buffer):
+					logging.debug("Invalid MAC 1 value.... dropping packet...")
+					continue
+
+				entry = table.get_by_id(ir)
+
+				if not entry:
+					continue
+
+				Cr = entry.Ci
+				Hr = entry.Hi
+
+				Erpub = packet.ephimeral()
+				Cr = crypto.digest.KDF.kdf1(Cr, Erpub)
+				h = crypto.digest.Digest()
+				Hr = h.digest(Hr + Erpub)
+				Eipriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(entry.Epriv)
+				Cr = crypto.digest.KDF.kdf1(Cr, Eipriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
+				Cr = crypto.digest.KDF.kdf1(Cr, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
+				Q = bytes([0x0] * 4)
+				(Cr, tau, k) = crypto.digest.KDF.kdf3(Cr, Q)
+				h = crypto.digest.Digest()
+				Hr = h.digest(Hr + tau)
+				h = crypto.digest.Digest()
+				Hr = h.digest(Hr + packet.empty())
+
+				(Tsend, Trecv) = crypto.digest.KDF.kdf2(Cr, crypto.constants.EMPTY)
+
+				print("Tsend %s" % (hexlify(Tsend)))
+				print("Trecv %s" % (hexlify(Trecv)))
+
+				entry.state = Statemachine.States.ESTABLISHED
+				entry.rekey_timeout = time() + Statemachine.RekeyTimeout
+				entry.R = ir
+				entry.I = ii
+				entry.TSend = Tsend
+				entry.TRecv = Trecv
+
+				entry.NSend = 0
+				entry.NRecv = 0
+
+			elif packet.type() == p.WIREGUARD_TRANSPORT_DATA_TYPE:
+				packet = WireGuardDataPacket(data);
+				ri = packet.receiver()
+				entry = table.get_by_id(ri)
+				if not entry:
+					continue
+				Nsend = utils.misc.Math.bytes_to_int(packet.counter())
+				if not (Nsend > entry.NRecv - Statemachine.SequenceWindow and Nsend < entry.NRecv + Statemachine.SequenceWindow):
+					logging.debug("Replay packet")
+					continue
+				aead = crypto.aead.AEAD(entry.TRecv, packet.counter())
+				try:
+					data = aead.decrypt(packet.data()[:-16], crypto.constants.EMPTY, packet.data()[-16:])
+				except Exception as e:
+					logging.critical(e)
+					continue
+				ipv4 = IPv4Packet(data)
+				entry.reject_after_timeout = time()
+				entry.NRecv = Nsend
+				tun.send(ipv4.get_buffer()[:ipv4.get_total_length() + 4])
+				#logging.debug(hexlify(ipv4.get_buffer()))
+			elif packet.type() == p.WIREGUARD_COOKIE_REPLY_TYPE:
+				packet = WireGuardCookiePacket(data)
+				ri = packet.receiver()
+				entry = table.get_by_id(ri)
+				if not entry:
+					continue
 				entry.cookie = packet.cookie()
-				entry.nonce = packet.nonce()
 				entry.cookie_timeout = time()
-				continue
-			if time() - entry.cookie_timeout < 120:
-				m = crypto.digest.MACDigest(entry.cookie)
-				buffer = packet.buffer[:p.INITIATOR_MSG_BETA_OFFSET]
-				if packet.mac2() != m.digest(buffer):
-					logging.debug("Invalid MAC 2... dropping packet")
-					continue
-				m = crypto.digest.MACDigest(R)
-				tau = m.digest(ip.encode("ASCII") + utils.misc.Math.int_to_bytes(int(port)))
-				d = crypto.digest.Digest()
-				xaead = crypto.aead.xAEAD(d.digest(crypto.constants.LABEL_COOKIE + Spub), entry.nonce)
-				cookie = xaead.encrypt(tau, mac1)
-				if cookie != entry.cookie:
-					logging.debug("Invalid cookie... dropping packet")
-					continue
-				entry.cookie = crypto.constants.EMPTY
-				entry.nonce = crypto.constants.EMPTY
-			h = crypto.digest.Digest()
-			Hi = h.digest(Hi + packet.static())
-			(Ci, k) = crypto.digest.KDF.kdf2(Ci, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
-			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))			
-			timestamp = aead.decrypt(packet.timestamp()[:-16], Hi, packet.timestamp()[-16:])
-			if entry.timestamp > utils.misc.Math.bytes_to_int(timestamp[:8]):
-				logging.debug("Timestamp is in the future...")
-				logging.debug(utils.misc.Math.bytes_to_int(timestamp[:8]))
-				continue
-			entry.timestamp = utils.misc.Math.bytes_to_int(timestamp[:8])
-			h = crypto.digest.Digest()
-			Hi = h.digest(Hi + packet.timestamp())
-			
-			# Create response here...
-			Cr = Ci
-			Hr = Hi
-
-			Erpriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(os.urandom(32))
-			Erpub = Erpriv.public_key()
-			entry.Epub = Erpub
-			entry.Epriv = Erpriv
-
-			Cr = crypto.digest.KDF.kdf1(Cr, Erpub)
-			packet = WireGuardResponderPacket()
-			packet.ephimeral(Erpub)
-			ii = os.urandom(4)
-			packet.sender(ii)
-			packet.receiver(ri)
-			h = crypto.digest.Digest()
-			Hr = h.digest(Hr + packet.ephimeral())
-			Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
-			Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
-			Q = bytes([0x0] * 4)
-			(Cr, tau, k) = crypto.digest.KDF.kdf3(Cr, Q)
-			h = crypto.digest.Digest()
-			Hr = h.digest(Hr + tau)
-			aead = crypto.aead.AEAD(k, bytes([0x0] * 8))			
-			packet.empty(aead.encrypt(crypto.constants.EMPTY, Hr))
-			h = crypto.digest.Digest()
-			Hr = h.digest(Hr + packet.empty())
-
-			buffer = packet.buffer[:p.RESPONDER_MSG_ALPHA_OFFSET]
-			h = crypto.digest.Digest()
-			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Sipub))
-			packet.mac1(m.digest(buffer))
-
-			if entry.cookie == crypto.constants.EMPTY or entry.cookie_timeout - time() > 120:
-				packet.mac2(bytes([0x0] * 16))
-			else:
-				m = crypto.digest.MACDigest(entry.cookie)
-				buffer = packet.buffer[:p.RESPONDER_MSG_BETA_OFFSET]
-				packet.mac2(m.digest(buffer))
-
-			(Trecv, Tsend) = crypto.digest.KDF.kdf2(Cr, crypto.constants.EMPTY)
-
-			logging.debug("Sent reply to initiator packet.... to %s %s" % (entry.ip_s, str(entry.port)))
-
-			wg_socket.sendto(packet.buffer, (entry.ip_s, int(entry.port)))
-			entry.state = Statemachine.States.ESTABLISHED
-			entry.rekey_timeout = time() + Statemachine.RekeyTimeout
-			entry.R = ii
-			entry.I = ri
-			entry.TSend = Tsend
-			entry.TRecv = Trecv
-			entry.NSend = 0
-			entry.NRecv = 0
-
-			print("Tsend %s" % (hexlify(Tsend)))
-			print("Trecv %s" % (hexlify(Trecv)))
-
-		elif packet.type() == p.WIREGUARD_RESPONDER_TYPE:
-			packet = WireGuardResponderPacket(data)
-			ii = packet.sender()
-			ir = packet.receiver()
-
-			buffer = packet.buffer[:p.RESPONDER_MSG_ALPHA_OFFSET]
-			h = crypto.digest.Digest()
-			m = crypto.digest.MACDigest(h.digest(crypto.constants.LABEL_MAC1 + Spub))
-			if packet.mac1() != m.digest(buffer):
-				logging.debug("Invalid MAC 1 value.... dropping packet...")
-				continue
-
-			entry = table.get_by_id(ir)
-
-			if not entry:
-				continue
-
-			Cr = entry.Ci
-			Hr = entry.Hi
-
-			Erpub = packet.ephimeral()
-			Cr = crypto.digest.KDF.kdf1(Cr, Erpub)
-			h = crypto.digest.Digest()
-			Hr = h.digest(Hr + Erpub)
-			Eipriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(entry.Epriv)
-			Cr = crypto.digest.KDF.kdf1(Cr, Eipriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
-			Cr = crypto.digest.KDF.kdf1(Cr, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
-			Q = bytes([0x0] * 4)
-			(Cr, tau, k) = crypto.digest.KDF.kdf3(Cr, Q)
-			h = crypto.digest.Digest()
-			Hr = h.digest(Hr + tau)
-			h = crypto.digest.Digest()
-			Hr = h.digest(Hr + packet.empty())
-
-			(Tsend, Trecv) = crypto.digest.KDF.kdf2(Cr, crypto.constants.EMPTY)
-
-			print("Tsend %s" % (hexlify(Tsend)))
-			print("Trecv %s" % (hexlify(Trecv)))
-
-			entry.state = Statemachine.States.ESTABLISHED
-			entry.rekey_timeout = time() + Statemachine.RekeyTimeout
-			entry.R = ir
-			entry.I = ii
-			entry.TSend = Tsend
-			entry.TRecv = Trecv
-
-			entry.NSend = 0
-			entry.NRecv = 0
-
-		elif packet.type() == p.WIREGUARD_TRANSPORT_DATA_TYPE:
-			packet = WireGuardDataPacket(data);
-			ri = packet.receiver()
-			entry = table.get_by_id(ri)
-			if not entry:
-				continue
-			Nsend = utils.misc.Math.bytes_to_int(packet.counter())
-			if not (Nsend > entry.NRecv - Statemachine.SequenceWindow and Nsend < entry.NRecv + Statemachine.SequenceWindow):
-				logging.debug("Replay packet")
-				continue
-			aead = crypto.aead.AEAD(entry.TRecv, packet.counter())
-			try:
-				data = aead.decrypt(packet.data()[:-16], crypto.constants.EMPTY, packet.data()[-16:])
-			except Exception as e:
-				logging.critical(e)
-				continue
-			ipv4 = IPv4Packet(data)
-			entry.reject_after_timeout = time()
-			entry.NRecv = Nsend
-			tun.send(ipv4.get_buffer()[:ipv4.get_total_length() + 4])
-			#logging.debug(hexlify(ipv4.get_buffer()))
-		elif packet.type() == p.WIREGUARD_COOKIE_REPLY_TYPE:
-			packet = WireGuardCookiePacket(data)
-			ri = packet.receiver()
-			entry = table.get_by_id(ri)
-			if not entry:
-				continue
-			entry.cookie = packet.cookie()
-			entry.cookie_timeout = time()
+		except Exception as e:
+			logging.critical(e)
 
 wg_th_loop = threading.Thread(target = wg_loop, args = (), daemon = True);
 tun_th_loop = threading.Thread(target = tun_loop, args = (), daemon = True);
