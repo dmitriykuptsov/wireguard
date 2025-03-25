@@ -511,6 +511,7 @@ def maintenance():
 				continue
 			if entry.cookie != crypto.constants.EMPTY and entry.cookie_timeout + Statemachine.RekeyTimeout > time():
 				continue
+			entry.is_initiator = True
 			entry.message_sent = 0
 			logging.debug("State is missing (periodic task)... Running key exchange....")
 			Srpub = entry.key
