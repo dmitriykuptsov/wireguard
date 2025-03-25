@@ -261,7 +261,7 @@ def wg_loop():
 		data, (ip, port) = wg_socket.recvfrom(2*MTU)
 		packet = WireGuardPacket(data)
 		if packet.type() == p.WIREGUARD_INITIATOR_TYPE:
-
+			requests_per_second += 1
 			if time() - last_minute >= MEASUREMENT_THRESHOLD:
 				if requests_per_second / MEASUREMENT_THRESHOLD > UNDER_LOAD_THRESHOLD:
 					under_load = True
