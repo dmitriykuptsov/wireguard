@@ -42,7 +42,7 @@ class CryptoRoutingEntry():
     
     def match_by_ip(self, dst):
         dst = dst & self.prefix
-        if dst & self.ip == self.ip:
+        if dst & self.ip == self.ip & self.prefix:
             return True
         return False
     

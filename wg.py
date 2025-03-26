@@ -284,8 +284,6 @@ def wg_loop():
 					logging.debug("Invalid MAC 1 value.... dropping packet...")
 					continue
 
-				entry.is_initiator = False
-
 				h = crypto.digest.Digest()
 				Ci = h.digest(crypto.constants.CONSTRUCTION)
 				h = crypto.digest.Digest()
@@ -305,6 +303,7 @@ def wg_loop():
 				if not entry:
 					logging.debug("Missing entry.....")
 					continue
+				entry.is_initiator = False
 				if under_load:
 					ii = packet.sender()
 					m = crypto.digest.MACDigest(R)
@@ -368,7 +367,7 @@ def wg_loop():
 				Hr = h.digest(Hr + packet.ephimeral())
 				Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Epub)))
 				Cr = crypto.digest.KDF.kdf1(Cr, Erpriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Sipub)))
-				Q = bytes([0x0] * 4)
+				Q = bytes([0x0] * 32)
 				(Cr, tau, k) = crypto.digest.KDF.kdf3(Cr, Q)
 				h = crypto.digest.Digest()
 				Hr = h.digest(Hr + tau)
@@ -391,9 +390,13 @@ def wg_loop():
 
 				(Trecv, Tsend) = crypto.digest.KDF.kdf2(Cr, crypto.constants.EMPTY)
 
-				logging.debug("Sent reply to initiator packet.... to %s %s" % (entry.ip_s, str(entry.port)))
+				logging.debug("Sent reply to initiator packet.... to %s %s" % (ip, str(port)))
 
-				wg_socket.sendto(packet.buffer, (entry.ip_s, int(entry.port)))
+				wg_socket.sendto(packet.buffer, (ip, port))
+
+				entry.ip_s = ip
+				entry.port = port
+
 				entry.state = Statemachine.States.ESTABLISHED
 				entry.rekey_timeout = time() + Statemachine.RekeyTimeout
 				entry.R = ii
@@ -435,7 +438,7 @@ def wg_loop():
 				Eipriv = crypto.curve25519.X25519PrivateKey.from_private_bytes(entry.Epriv)
 				Cr = crypto.digest.KDF.kdf1(Cr, Eipriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
 				Cr = crypto.digest.KDF.kdf1(Cr, Spriv.exchange(crypto.curve25519.X25519PublicKey.from_public_bytes(Erpub)))
-				Q = bytes([0x0] * 4)
+				Q = bytes([0x0] * 32)
 				(Cr, tau, k) = crypto.digest.KDF.kdf3(Cr, Q)
 				h = crypto.digest.Digest()
 				Hr = h.digest(Hr + tau)
