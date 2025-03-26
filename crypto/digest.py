@@ -17,101 +17,109 @@
 
 from Crypto.Hash import HMAC, BLAKE2s
 
+
 class HMACDigest():
-	"""
-	BLAKE2s based HMAC
-	"""
-	B_LENGTH = 64;
-	def __init__(self, key = None):
-		self.key = key;
-	
-	@staticmethod
-	def xor(one, two):
-		return bytes(a ^ b for (a, b) in zip(one, two))
+    """
+    BLAKE2s based HMAC
+    """
+    B_LENGTH = 64
 
-	def digest(self, data):
-		if len(self.key) > self.B_LENGTH:
-			h = BLAKE2s.new(digest_bits=256)
-			h.update(self.key)
-			self.key = h.digest()
-			self.key = self.key + bytes([0] * (self.B_LENGTH - len(self.key)))
-		elif len(self.key) < self.B_LENGTH:
-			self.key = self.key + bytes([0] * (self.B_LENGTH - len(self.key)))
-		opad = bytes([0x5c] * self.B_LENGTH)
-		ipad = bytes([0x36] * self.B_LENGTH)
-		p1 = HMACDigest.xor(self.key, opad)
-		h = BLAKE2s.new(digest_bits=256)
-		h.update(HMACDigest.xor(self.key, ipad) + data)
-		p2 = h.digest()
-		h = BLAKE2s.new(digest_bits=256)
-		h.update(p1 + p2)
-		return h.digest()
-	
+    def __init__(self, key=None):
+        self.key = key
+
+    @staticmethod
+    def xor(one, two):
+        return bytes(a ^ b for (a, b) in zip(one, two))
+
+    def digest(self, data):
+        if len(self.key) > self.B_LENGTH:
+            h = BLAKE2s.new(digest_bits=256)
+            h.update(self.key)
+            self.key = h.digest()
+            self.key = self.key + bytes([0] * (self.B_LENGTH - len(self.key)))
+        elif len(self.key) < self.B_LENGTH:
+            self.key = self.key + bytes([0] * (self.B_LENGTH - len(self.key)))
+        opad = bytes([0x5c] * self.B_LENGTH)
+        ipad = bytes([0x36] * self.B_LENGTH)
+        p1 = HMACDigest.xor(self.key, opad)
+        h = BLAKE2s.new(digest_bits=256)
+        h.update(HMACDigest.xor(self.key, ipad) + data)
+        p2 = h.digest()
+        h = BLAKE2s.new(digest_bits=256)
+        h.update(p1 + p2)
+        return h.digest()
+
+
 class MACDigest():
-	"""
-	BLAKE2s based MAC
-	"""
-	def __init__(self, key = None):
-		self.key = key;
-	
-	def digest(self, data):
-		h = BLAKE2s.new(digest_bytes=16, key=self.key)
-		h.update(data)
-		return h.digest()
+    """
+    BLAKE2s based MAC
+    """
 
-#from binascii import hexlify, unhexlify
-#mac = MACDigest(b'test')
-#print(hexlify(mac.digest(b'test')))
+    def __init__(self, key=None):
+        self.key = key
+
+    def digest(self, data):
+        h = BLAKE2s.new(digest_bytes=16, key=self.key)
+        h.update(data)
+        return h.digest()
+
+# from binascii import hexlify, unhexlify
+# mac = MACDigest(b'test')
+# print(hexlify(mac.digest(b'test')))
+
 
 class KDF():
-	"""
-	Key derivation function
-	"""
-	@staticmethod
-	def kdf1(key, input):
-		hmac = HMACDigest(key)
-		tau0 = hmac.digest(input)
-		hmac = HMACDigest(tau0)
-		tau1 = hmac.digest(bytes([0x1]))
-		return tau1
-	@staticmethod
-	def kdf2(key, input):
-		hmac = HMACDigest(key)
-		tau0 = hmac.digest(input)
-		hmac = HMACDigest(tau0)
-		tau1 = hmac.digest(bytes([0x1]))
-		hmac = HMACDigest(tau0)
-		tau2 = hmac.digest(tau1 + bytes([0x2]))
-		return (tau1, tau2)
-	@staticmethod
-	def kdf3(key, input):
-		hmac = HMACDigest(key)
-		tau0 = hmac.digest(input)
-		hmac = HMACDigest(tau0)
-		tau1 = hmac.digest(bytes([0x1]))
-		hmac = HMACDigest(tau0)
-		tau2 = hmac.digest(tau1 + bytes([0x2]))
-		hmac = HMACDigest(tau0)
-		tau3 = hmac.digest(tau2 + bytes([0x3]))
-		return (tau1, tau2, tau3)
+    """
+    Key derivation function
+    """
+    @staticmethod
+    def kdf1(key, input):
+        hmac = HMACDigest(key)
+        tau0 = hmac.digest(input)
+        hmac = HMACDigest(tau0)
+        tau1 = hmac.digest(bytes([0x1]))
+        return tau1
 
-#from binascii import hexlify
-#h = HMACDigest(b'testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest')
-#print(hexlify(h.digest(b'testtesttesttesttesttesttesttest')));
+    @staticmethod
+    def kdf2(key, input):
+        hmac = HMACDigest(key)
+        tau0 = hmac.digest(input)
+        hmac = HMACDigest(tau0)
+        tau1 = hmac.digest(bytes([0x1]))
+        hmac = HMACDigest(tau0)
+        tau2 = hmac.digest(tau1 + bytes([0x2]))
+        return (tau1, tau2)
 
-#from binascii import hexlify, unhexlify
-#h = HMACDigest(b'test')
-#print(hexlify(h.digest(b'test')))
+    @staticmethod
+    def kdf3(key, input):
+        hmac = HMACDigest(key)
+        tau0 = hmac.digest(input)
+        hmac = HMACDigest(tau0)
+        tau1 = hmac.digest(bytes([0x1]))
+        hmac = HMACDigest(tau0)
+        tau2 = hmac.digest(tau1 + bytes([0x2]))
+        hmac = HMACDigest(tau0)
+        tau3 = hmac.digest(tau2 + bytes([0x3]))
+        return (tau1, tau2, tau3)
 
-#hmac = HMAC.new(b'testtesttesttesttesttesttesttest', digestmod=SHA256);
-#hmac.update(b'testtesttesttesttesttesttesttest');
-#print(hexlify(hmac.digest()));
+# from binascii import hexlify
+# h = HMACDigest(b'testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest')
+# print(hexlify(h.digest(b'testtesttesttesttesttesttesttest')));
+
+# from binascii import hexlify, unhexlify
+# h = HMACDigest(b'test')
+# print(hexlify(h.digest(b'test')))
+
+# hmac = HMAC.new(b'testtesttesttesttesttesttesttest', digestmod=SHA256);
+# hmac.update(b'testtesttesttesttesttesttesttest');
+# print(hexlify(hmac.digest()));
+
 
 class Digest():
-	def __init__(self):
-		pass
-	def digest(self, data):
-		h = BLAKE2s.new(digest_bits=256)
-		h.update(data)
-		return h.digest()
+    def __init__(self):
+        pass
 
+    def digest(self, data):
+        h = BLAKE2s.new(digest_bits=256)
+        h.update(data)
+        return h.digest()

@@ -17,6 +17,7 @@
 
 from Crypto.Cipher import ChaCha20_Poly1305
 
+
 class AEAD():
     def __init__(self, key, counter):
         if len(key) != 32:
@@ -32,13 +33,12 @@ class AEAD():
         cipher.update(auth)
         o = cipher.encrypt_and_digest(data)
         return o[0] + o[1]
-    
+
     def decrypt(self, data, auth, tag):
         cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.counter)
         cipher.update(auth)
         return cipher.decrypt_and_verify(data, tag)
 
-    
 
 class xAEAD():
     def __init__(self, key, nonce):
@@ -54,20 +54,20 @@ class xAEAD():
         cipher.update(auth)
         o = cipher.encrypt_and_digest(data)
         return o[0] + o[1]
-    
+
     def decrypt(self, data, auth, tag):
         cipher = ChaCha20_Poly1305.new(key=self.key, nonce=self.counter)
         cipher.update(auth)
         return cipher.decrypt_and_verify(data, tag)
-        
-#import os
-#key = os.urandom(32)
-#counter = os.urandom(8)
-#c = AEAD(key, counter)
-#data = b'Hello, world!'
-#ad = b'Header!'
-#(cipher, tag) = c.encrypt_and_digest(data, ad)
-#c = AEAD(key, counter)
-#data = b'Hello, world!'
-#ad = b'Header!'
-#print(c.decrypt_and_verify(cipher, ad, tag))
+
+# import os
+# key = os.urandom(32)
+# counter = os.urandom(8)
+# c = AEAD(key, counter)
+# data = b'Hello, world!'
+# ad = b'Header!'
+# (cipher, tag) = c.encrypt_and_digest(data, ad)
+# c = AEAD(key, counter)
+# data = b'Hello, world!'
+# ad = b'Header!'
+# print(c.decrypt_and_verify(cipher, ad, tag))

@@ -30,7 +30,7 @@ while reading:
             last = subcommands[-1]
             if s:
                 s = commands[last]
-            
+
             print("")
         if data == "exit":
             reading = False

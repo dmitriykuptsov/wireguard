@@ -15,40 +15,45 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from time import sleep
+from network.pytun import TunTunnel
 import sys
 import os
-sys.path.append("../");
+sys.path.append("../")
 
-from network.pytun import TunTunnel
-from time import sleep
 
-PSEUDO_HEADER_SIZE = 0x4;
+PSEUDO_HEADER_SIZE = 0x4
+
 
 class Tun():
-	"""
-	Initializes the tun device
-	"""
-	def __init__(self, address = "10.0.0.2", mtu = 1500, name = "wg0"):
-		self.name = name;
-		self.tun = TunTunnel(pattern = name);
-		self.tun.set_ipv4(address);
-		self.tun.set_mtu(mtu);
+    """
+    Initializes the tun device
+    """
 
-	def set_address(self, address):
-		self.tun.set_ipv4(address);
-	"""
+    def __init__(self, address="10.0.0.2", mtu=1500, name="wg0"):
+        self.name = name
+        self.tun = TunTunnel(pattern=name)
+        self.tun.set_ipv4(address)
+        self.tun.set_mtu(mtu)
+
+    def set_address(self, address):
+        self.tun.set_ipv4(address)
+    """
 	Reads data from device
 	"""
-	def read(self, nbytes = 1500):
-		#return self.tun.recv(nbytes + PSEUDO_HEADER_SIZE);
-		return self.tun.recv(nbytes);
-	"""
+
+    def read(self, nbytes=1500):
+        # return self.tun.recv(nbytes + PSEUDO_HEADER_SIZE);
+        return self.tun.recv(nbytes)
+    """
 	Writes buffer to device
 	"""
-	def write(self, buf):
-		return self.tun.send(buf);
-	"""
+
+    def write(self, buf):
+        return self.tun.send(buf)
+    """
 	Closes TUN interface
 	"""
-	def close(self):
-		self.tun.down();
+
+    def close(self):
+        self.tun.down()
