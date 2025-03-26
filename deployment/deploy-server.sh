@@ -1,4 +1,4 @@
-# Should started from witin the deployment directory
+# Should be started from witin the deployment directory
 echo "Updating the system"
 sudo apt-get update
 echo "Installing libraries"
@@ -7,7 +7,7 @@ echo "Preparing directories"
 mkdir /opt/wg/
 cd ..
 echo "Copying the files"
-rsync -rv  config crypto network packets routing states tools utils wg.py /opt/wg/
+rsync -rv config crypto network packets routing states tools utils wg.py /opt/wg/
 echo "Copying the service file"
 cd startup
 cp wg.service /etc/systemd/system/
