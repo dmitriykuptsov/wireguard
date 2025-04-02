@@ -7,7 +7,7 @@ class CryptoRoutingEntry():
 
     ip = None
     ip_s = None
-    prefix = None
+    mask = None
     key = None
     port = None
     I = None
@@ -34,16 +34,16 @@ class CryptoRoutingEntry():
     is_initiator = False
     dst = None
 
-    def __init__(self, ip, prefix, key, port, ip_s):
+    def __init__(self, ip, mask, key, port, ip_s):
         self.ip_s = ip_s
         self.ip = ip
-        self.prefix = prefix
+        self.mask = mask
         self.key = key
         self.port = port
 
     def match_by_ip(self, dst):
-        dst = dst & self.prefix
-        if dst & self.ip == self.ip & self.prefix:
+        dst = dst & self.mask
+        if dst == self.ip & self.mask:
             return True
         return False
 
@@ -58,13 +58,13 @@ class CryptoRoutingEntry():
         return False
 
     def __str__(self):
-        prefix = Math.int_to_bytes(self.prefix)
-        prefix = str(prefix[0]) + "." + str(prefix[1]) + \
-            "." + str(prefix[2]) + "." + str(prefix[3])
+        mask = Math.int_to_bytes(self.mask)
+        mask = str(mask[0]) + "." + str(mask[1]) + \
+            "." + str(mask[2]) + "." + str(mask[3])
         ip = Math.int_to_bytes(self.ip)
         ip = str(ip[0]) + "." + str(ip[1]) + "." + \
             str(ip[2]) + "." + str(ip[3])
-        return b64encode(self.key).decode("ASCII") + " " + ip + " " + prefix + " " + str(self.port) + " " + self.ip_s
+        return b64encode(self.key).decode("ASCII") + " " + ip + " " + mask + " " + str(self.port) + " " + self.ip_s
 
 
 def recmp(left, right):
