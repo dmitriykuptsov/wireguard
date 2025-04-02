@@ -112,19 +112,19 @@ def config_loop():
                     conn.send("\n".encode("ASCII"))
                 elif command.startswith("add route"):
                     command = command.removeprefix("add route").strip()
-                    (ip, prefix, key, port, ip_s) = command.split(" ")
+                    (ip, mask, key, port, ip_s) = command.split(" ")
                     logging.debug("Adding crypto routing entry....")
                     logging.debug("IP:" + ip)
-                    logging.debug("Prefix: " + prefix)
+                    logging.debug("Prefix: " + mask)
                     logging.debug("Key: " + key)
                     logging.debug("Port: " + port)
                     logging.debug("Destination: " + ip_s)
                     ip_bytes = bytes([int(x) for x in ip.split(".")])
-                    prefix_bytes = bytes([int(x) for x in prefix.split(".")])
+                    mask_bytes = bytes([int(x) for x in mask.split(".")])
                     port = int(port)
                     entry = routing.cryptoroute.CryptoRoutingEntry(utils.misc.Math.bytes_to_int(ip_bytes),
                                                                    utils.misc.Math.bytes_to_int(
-                                                                       prefix_bytes),
+                                                                   mask_bytes),
                                                                    b64decode(key), int(port), ip_s)
                     table.add(entry)
                 elif command.startswith("list routes"):
