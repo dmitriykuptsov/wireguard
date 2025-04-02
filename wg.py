@@ -115,7 +115,7 @@ def config_loop():
                     (ip, mask, key, port, ip_s) = command.split(" ")
                     logging.debug("Adding crypto routing entry....")
                     logging.debug("IP:" + ip)
-                    logging.debug("Prefix: " + mask)
+                    logging.debug("Mask: " + mask)
                     logging.debug("Key: " + key)
                     logging.debug("Port: " + port)
                     logging.debug("Destination: " + ip_s)
